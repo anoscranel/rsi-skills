@@ -1,15 +1,16 @@
 ---
 name: ac-rsi
+description: "Shared Recursive Self-Improvement core. Owns the event-log schema and (in Stage 2, not built yet) the offline optimization pass that turns per-skill 00-rsi logs into typed edit proposals. Installed once; immutable at runtime. Use when reading or validating 00-rsi logs across skills."
 license: MIT
-description: Shared Recursive Self-Improvement core. Owns the event-log schema and (in Stage 2) the offline optimization pass that turns per-skill 00-rsi logs into typed edit proposals. Installed once; immutable at runtime. Use when running an RSI optimization pass or reading 00-rsi logs across skills.
-domain: rsi
+metadata:
+  domain: rsi
 ---
 
 # RSI — shared self-improvement core (log-and-propose)
 
 ## Overview
 
-`rsi` is the shared, **immutable-at-runtime** core behind the per-skill `00-rsi` leaves
+`ac-rsi` is the shared, **immutable-at-runtime** core behind the per-skill `00-rsi` leaves
 (SPEC-rsi-skills). It owns the machinery every skill's RSI leaf relies on: the event-log
 **schema** and, from Stage 2, the offline **optimization pass** that aggregates logs into
 typed, prune-first edit proposals. It makes **no domain claim** — that is why it never
@@ -23,9 +24,12 @@ is fixed; only the append-only logs change.
 - **Stage 2 (gated, NOT built):** `scripts/optimize.py` + `scripts/score.py` — an offline
   bandit/GEPA pass producing typed edit proposals as evidence cards. Built only after the
   Stage-1 quantitative gates (SPEC §0) pass, and human-approved.
-- Stage 1 has no reader. The trustworthy-log gate (SPEC-rsi-skills.md §0) is measured by: measurement script not built yet (TD-18 deferred).
+- Stage 1 has no reader: no script measures the §0 gate yet.
 
 ## Hard rules (SPEC §4 — non-negotiable)
+
+These rules bind, but nothing enforces them at runtime today. A lint checks only the
+leaf's static shape; see SPEC §4 rule 1.
 
 1. This core NEVER edits, deletes, or truncates ANY file at runtime — not a skill file,
    not a log. Logs are append-only.
@@ -34,14 +38,14 @@ is fixed; only the append-only logs change.
 3. It NEVER trains on a skill's self-recorded log alone (the Roesner & Kohno poisoning
    trap); optimization uses independently-recorded outcomes + held-out re-runs.
 4. This core is NEVER rewritten by any skill at runtime. Changes to the core go through
-   the full `skill-author` audit pipeline as a normal human-gated skill change.
+   the full `ac-subskills-author` audit pipeline as a normal human-gated skill change.
 5. Fail-closed, evidence-carded. An inconclusive signal = no proposal, never a maybe.
 6. Drift tripwire (SPEC §4 rule 6): a skill whose triggers drift past the bound is flagged for full re-audit.
 
 ## What it holds
 
 - `schema/log-schema.md` — the event-log format every `00-rsi` leaf appends to.
-- Leaf events go to `~/.local/share/opencode/rsi/leaf-events.jsonl`; harness outcomes to `~/.local/share/opencode/rsi/harness-outcomes.jsonl`, joined on `sessionID`.
+- Leaf events go to `~/.local/share/opencode/rsi/leaf-events.jsonl` (opencode default; set your harness's equivalent). Harness outcomes go to `harness-outcomes.jsonl` in the same directory, written by a recorder this repo does not ship. Join on `sessionID` + `callID`.
 
 ## Aggregation liability (honest)
 
