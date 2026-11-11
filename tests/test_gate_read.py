@@ -416,6 +416,57 @@ class TestGateReadContract(GateReadCase):
         self.assertIn("Rotation boundary 2 (e.1 vs o.2): no `prev`-bearing record", out)
         self.assertNotIn("Traceback", out)
 
+    # 17 — --skill-events: per-skill activation counts, session-level only.
+    def test_skill_events_opencode_adapter(self):
+        events = self.path("events.jsonl")
+        with open(events, "w", encoding="utf-8") as h:
+            for sid, skill in (("s1", "ac-alpha"), ("s1", "ac-beta"), ("s2", "ac-alpha")):
+                h.write(json.dumps({
+                    "type": "tool_use", "sessionID": sid,
+                    "part": {"type": "tool", "tool": "skill",
+                             "state": {"status": "completed", "input": {"id": skill}}},
+                }) + "\n")
+            # a non-skill tool part must be ignored
+            h.write(json.dumps({
+                "type": "tool_use", "sessionID": "s3",
+                "part": {"type": "tool", "tool": "bash", "state": {"status": "completed"}},
+            }) + "\n")
+        result = self.run_reader(
+            "--leaf", self.path("no-leaf.jsonl"), "--outcome", self.path("no-out.jsonl"),
+            "--skill-events", events,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assert_in("Skill activations (3 record(s)", result.stdout)
+        self.assert_in("  ac-alpha: 2", result.stdout)
+        self.assert_in("  ac-beta: 1", result.stdout)
+        self.assert_in("distinct skills: 2", result.stdout)
+        self.assert_in("attribution: session-level", result.stdout)
+
+    # 18 — --skill-events with the flat json adapter
+    def test_skill_events_json_adapter(self):
+        events = self.path("flat.jsonl")
+        with open(events, "w", encoding="utf-8") as h:
+            for sid, skill in (("s1", "ac-gamma"), ("s2", "ac-gamma")):
+                h.write(json.dumps({"sessionID": sid, "skill": skill,
+                                    "ts": "2026-11-11T00:00:00Z"}) + "\n")
+        result = self.run_reader(
+            "--leaf", self.path("no-leaf.jsonl"), "--outcome", self.path("no-out.jsonl"),
+            "--skill-events", events, "--adapter", "json",
+        )
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assert_in("Skill activations (2 record(s)", result.stdout)
+        self.assert_in("  ac-gamma: 2", result.stdout)
+
+    # 19 — absent --skill-events file is not an error
+    def test_skill_events_missing_file(self):
+        result = self.run_reader(
+            "--leaf", self.path("no-leaf.jsonl"), "--outcome", self.path("no-out.jsonl"),
+            "--skill-events", self.path("does-not-exist.jsonl"),
+        )
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assert_in("Skill activations (0 record(s)", result.stdout)
+        self.assertNotIn("Traceback", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

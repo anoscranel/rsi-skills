@@ -1,12 +1,35 @@
 # Changelog
 
-[unreleased]: https://github.com/anoscranel/rsi-skills/compare/v0.6.0...HEAD
+[unreleased]: https://github.com/anoscranel/rsi-skills/compare/v0.7.0...HEAD
+[0.6.0…0.7.0]: https://github.com/anoscranel/rsi-skills/compare/v0.6.0...v0.7.0
 [0.5.1…0.6.0]: https://github.com/anoscranel/rsi-skills/compare/v0.5.1...v0.6.0
 [0.5.0…0.5.1]: https://github.com/anoscranel/rsi-skills/compare/v0.5.0...v0.5.1
 [0.4.0…0.5.0]: https://github.com/anoscranel/rsi-skills/compare/v0.4.0...v0.5.0
 [0.2.0…0.3.0]: https://github.com/anoscranel/rsi-skills/compare/v0.2.0...v0.3.0
 [0.3.0…0.4.0]: https://github.com/anoscranel/rsi-skills/compare/v0.3.0...v0.4.0
 [0.1.0…0.2.0]: https://github.com/anoscranel/rsi-skills/compare/v0.1.0...v0.2.0
+
+## 0.7.0 — 2026-11-12
+
+Corrections forced by the 2026-11-11 research cycle: the recorder bar now states what it can
+actually support, the novelty claim now states what vendors really measure, and the Stage-2
+gate now requires evidence that survives re-running.
+
+### Added
+- `docs/MISS-RATE.md`: the protocol for the one measurement no vendor ships — whether the
+  *correct* skill fired when it should have. Protocol only; running it needs a held-out task
+  set with human-assigned expected skills.
+- Spec §6: a subsection recording what vendor telemetry actually measures (activation counts)
+  and what it does not (the miss rate).
+
+### Fixed
+- Spec §0: the recorder bar no longer requires "a recorder the agent cannot write to", which
+  is unsatisfiable on a single-user device, and instead states an independence triad —
+  verifier ≠ writer, head committed outside the writer's reach, consecutive commitments
+  checked — with the honest limit that a same-uid hash chain detects accidents, not tampering.
+- Spec §7: the Stage-2 gate now requires ≥3 re-runs with a confidence interval, a frozen
+  held-out set, a pre-measured noise floor, a per-proposal cost ledger, and an always-pass
+  tripwire for gate collapse.
 
 ## 0.6.0 — 2026-11-11
 

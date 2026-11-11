@@ -216,6 +216,70 @@ def parse_window(value):
     return parsed
 
 
+def read_skill_events(paths, adapter):
+    """Return (events, malformed) where each event is (sessionID, skill, ts).
+
+    adapter 'opencode': tool_use lines whose part.tool == "skill";
+    skill = part.state.input.id, ts = timestamp or ts.
+    adapter 'json': flat {"sessionID", "skill", "ts"} per line.
+    Unreadable/missing files contribute nothing (report shows 0)."""
+    events = []
+    malformed = 0
+    for path in paths or []:
+        if not os.path.isfile(path):
+            continue
+        for line in read_lines(path):
+            try:
+                record = json.loads(line)
+            except ValueError:
+                malformed += 1
+                continue
+            if not isinstance(record, dict):
+                malformed += 1
+                continue
+            if adapter == "opencode":
+                part = record.get("part") if record.get("type") == "tool_use" else None
+                if not isinstance(part, dict):
+                    continue
+                if part.get("tool") != "skill":
+                    continue
+                state = part.get("state") or {}
+                skill = (state.get("input") or {}).get("id")
+                sid = record.get("sessionID") or part.get("sessionID")
+                ts = record.get("timestamp") or record.get("ts")
+            else:
+                skill = record.get("skill")
+                sid = record.get("sessionID")
+                ts = record.get("ts")
+            if not isinstance(skill, str) or not skill:
+                malformed += 1
+                continue
+            events.append((sid, skill, ts))
+    return events, malformed
+
+
+def report_skill_events(paths, adapter):
+    """Print the skill-activation section. Session-level association only:
+    activation records carry no callID, so per-skill outcome rates are NOT
+    derivable and are deliberately not printed."""
+    events, malformed = read_skill_events(paths, adapter)
+    print("Skill activations (%d record(s), adapter=%s)" % (len(events), adapter))
+    if not events:
+        print("  0 skill activations (no records found)")
+        if malformed:
+            print("  malformed: %d" % malformed)
+        return
+    tally = Counter(skill for _sid, skill, _ts in events)
+    sessions = set(sid for sid, _s, _t in events if sid)
+    for skill in sorted(tally):
+        print("  %s: %d" % (skill, tally[skill]))
+    print("  distinct skills: %d" % len(tally))
+    print("  sessions with an activation: %d" % len(sessions))
+    print("  attribution: session-level (no callID on activation records)")
+    if malformed:
+        print("  malformed: %d" % malformed)
+
+
 def main(argv):
     parser = argparse.ArgumentParser(
         prog="gate-read.py",
@@ -250,6 +314,24 @@ def main(argv):
             "the numeric suffixes: listing .2 before .1 yields a "
             "meaningless break on every pair. Default: none."
         ),
+    )
+    parser.add_argument(
+        "--skill-events",
+        action="append",
+        default=[],
+        metavar="PATH",
+        help=(
+            "skill-activation records (JSONL); may repeat. Adapter 'opencode' "
+            "reads tool_use lines with part.tool == 'skill' and takes "
+            "part.state.input.id as the skill name; adapter 'json' reads flat "
+            "{sessionID, skill, ts} lines. Default: none."
+        ),
+    )
+    parser.add_argument(
+        "--adapter",
+        choices=("opencode", "json"),
+        default="opencode",
+        help="shape of --skill-events records (default: opencode)",
     )
     parser.add_argument(
         "--since",
@@ -487,6 +569,8 @@ def main(argv):
                         "%s no `prev`-bearing record in the newer file — no boundary checked"
                         % (label,)
                     )
+    print("")
+    report_skill_events(args.skill_events, args.adapter)
     print("")
     print(DIAGNOSTIC_NOTE)
     print("STATUS: GATE NOT EVALUABLE (diagnostic report only)")

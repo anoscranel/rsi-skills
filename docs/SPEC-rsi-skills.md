@@ -22,8 +22,15 @@ capability succeeds when ALL of these hold across a ≥30-day measured window on
 skills, against the pre-proposal fired-leaf outcome rate measured from the same log:
 - **Trustworthy log:** ≥100 leaf events per pilot skill. Of those, ≥95 in every 100 have
   exactly one harness outcome record with the same sessionID and callID, written by a
-  recorder the agent cannot write to (a different uid, or a hash chain anchored outside the
-  agent's reach). Zero breaks in the chain. The improvement margin is fixed in a dated file
+  recorder that satisfies the independence triad: (i) the verifier is not the writing
+  process, (ii) the chain head is committed somewhere that writing process cannot reach, and
+  (iii) consecutive commitments are checked for consistency. ⚠️ A same-uid hash chain alone
+  detects accidents (corruption, truncation, restarts), not tampering — the writer can
+  recompute every later link. On a single-user mobile device no in-process writer can
+  hold a separate uid (`/data` is `nosuid`, there is no TPM, `chattr +a` is refused); the
+  separate-uid options are a second Android app, a hardware-held signing key, or a remote
+  writer, and none is required for the pilot to open. Zero breaks in the chain. The
+  improvement margin is fixed in a dated file
   before the window opens. The window opens only when a dated pilot card (start date, pilot
   skills, recorder identity + first chain hash, margin) is committed; see docs/PILOT-2026-11.md.
 - **Replicated improvement:** ≥1 typed edit proposal passes the human+validator gate AND
@@ -227,6 +234,21 @@ Scale and retention: outcome logs grow with harness traffic (observed ~25 MB liv
   composition is novel (⚠️ absence claim, not independently verified). We build a new
   combination.
 
+### What vendors now measure (and what they do not)
+
+Skill *activation* telemetry exists and is agent-initiated in at least three harnesses:
+opencode emits a `skill` tool event carrying the skill id (and a `session.skill.activated`
+event); Claude Code emits `claude_code.skill_activated` with an `invocation_trigger` field
+distinguishing agent-selected (`claude-proactive`) from user-invoked (`user-slash`)
+(v2.1.126, 2026-04-30); Cursor emits `cursor.skill.trigger`. What none of them measures is
+the **miss rate** — whether the correct skill fired when it should have. A skill that never
+fires emits no event, so absence of telemetry is indistinguishable from correctness.
+
+So the measured quantities are: *fired-leaf outcome rate* (this log), *activation counts per
+skill* (vendor telemetry), and *miss rate* (nobody). The miss rate requires the offline
+paired replay described above against a held-out task set, and remains unmeasured by any
+vendor found as of 2026-11-11 (⚠️ absence claim; vendor docs and changelogs searched).
+
 ## 7. The path to "#1 subskill in every skill"
 
 RSI is adopted in stages; promotion to universal #1 is gated on the quantitative bars in
@@ -241,7 +263,12 @@ and existing pipeline skills get it backfilled — the achievable form of "every
   (≥100 leaf events/skill, ≥95 in 100 matched to one independent outcome record, zero
   chain breaks) over ≥30 days.
 - **Stage 2 (propose):** turn on the offline optimization pass. **Gate = the §0
-  "replicated improvement" + "no safety regression" bars.** Miss → STOP-and-report, not
+  "replicated improvement" + "no safety regression" bars.** A proposal is admitted only if it
+  also survives ≥3 re-runs with a reported confidence interval, is measured against a frozen
+  held-out set that neither diagnosis nor the gate ever touched, beats a pre-measured noise
+  floor, and is entered in a per-proposal cost ledger (accepted, rejected, minutes per
+  accepted). An always-pass tripwire runs alongside the gate: if the gate's own verdict
+  variance collapses to zero across proposals, the gate is treated as broken, not as perfect. Miss → STOP-and-report, not
   retry-forever.
 - **Stage 3 (universal):** only on Stage-2 success, `ac-subskills-author`'s emit-tree is updated
   so every NEW skill ships `00-rsi` by default, and existing skills are backfilled. This

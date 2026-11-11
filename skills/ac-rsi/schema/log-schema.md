@@ -62,3 +62,23 @@ Measured with this repo's diagnostic reader on 2026-11-11: the opencode recorder
 - `ts` — UTC, ISO-8601, from a clock the harness provides; never the model's guess.
 
 These are requirements, mechanism-neutral; no route (leaf-side vs harness-side logging) is implied.
+
+## Activation records (producer examples — none canonical)
+
+These are **not** leaf records and **not** outcome records. They record that a skill was
+*selected*, which neither of the other two types captures. Measured producer shapes, listed
+as examples only; a conformant reader takes whichever shape its harness emits:
+
+- **opencode** — a `tool_use` event whose `part.tool` is `"skill"`, with the skill name at
+  `part.state.input.id` (verified on device, 2026-11-11).
+- **Claude Code** — `claude_code.skill_activated` with an `invocation_trigger` field
+  (`claude-proactive` = agent-selected, `user-slash` = user-invoked), since v2.1.126.
+- **Cursor** — `cursor.skill.trigger`.
+- **Org-analytics exports** — vendor-specific; treat as opaque and map explicitly.
+
+⚠️ Activation records carry **no `callID`**, so they support **session-level association
+only**. Do not derive per-skill outcome rates from them: a session may contain several
+skills, and nothing in an activation record says which outcome belongs to which.
+
+⚠️ Activation counts are **not** recall. A skill that should have fired and did not emits no
+event at all, so the miss rate is invisible to every activation log (see `docs/MISS-RATE.md`).
