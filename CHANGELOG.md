@@ -1,7 +1,24 @@
 # Changelog
 
+[unreleased]: https://github.com/anoscranel/rsi-skills/compare/v0.4.0...HEAD
 [0.2.0…0.3.0]: https://github.com/anoscranel/rsi-skills/compare/v0.2.0...v0.3.0
+[0.3.0…0.4.0]: https://github.com/anoscranel/rsi-skills/compare/v0.3.0...v0.4.0
 [0.1.0…0.2.0]: https://github.com/anoscranel/rsi-skills/compare/v0.1.0...v0.2.0
+
+## 0.4.0 — 2026-11-11
+
+Diagnosability of the real opencode logs: rotation semantics, the reader V2, and the surrounding docs. Drafted from the 2026-11-11 cycle-2 frozen scope only.
+
+### Added
+- Schema: rotation semantics (V1.1) — outcome files may rotate with numeric suffixes; canonical history spans the files in suffix order (live first, then older); cross-file chain semantics are design intent, owner-revisable; the measured recorder rotation break (2026-11-11) recorded in the schema.
+- Schema: writer requirements for the three harness-supplied fields (`sessionID`, `callID`, `ts`), mechanism-neutral.
+- `scripts/gate-read.py` V2: `--outcome2` flag for a rotated/older outcome file (one rotation level; `.2`+ passes not in scope); chain report classifies mid-file breaks per file and reports the rotation boundary once, labeled (boundary break vs cross-file-intact when the first live `prev` matches the rotated file's last-line hash).
+- `scripts/gate-read.py` V2: duplicate-key tallies on BOTH sides, reported as `duplicate keys: N of M` per record type.
+- `scripts/gate-read.py` V2: `--since` / `--until` ISO-8601 window flags on `ts` (both sides; excluded records reported).
+- `scripts/gate-read.py` V2: `validator_verdict` tally — count, with an explicit `0 present (recorder does not write this field)` when zero.
+- Spec §6: scale and retention subsection — observed log growth on the reference device; growth/rotation/retention are harness-owned, operator's choice; no retention threshold set by the spec.
+- README: Diagnostics section (what the reader reports, sample reference-device output, diagnostic-only reminder).
+- `CONTRIBUTING.md`: proposal and review policy (propose via GitHub issue; human review; accepted scope = spec/schema/reader text only).
 
 ## 0.3.0 — 2026-11-11
 

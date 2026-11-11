@@ -47,4 +47,18 @@ Leaf record:
    telemetry, not a data store.
 4. **Fired-leaf outcome rate** is the honest metric derivable from this log. Trigger
    *recall* requires the offline paired-replay (SPEC §6), not this log alone.
-5. **Chain** — each outcome record carries `prev` (the hash of the preceding line; the live opencode recorder's field name); a break is any record whose `prev` does not match the hash of the preceding line.
+5. **Chain** — each outcome record carries `prev` (the hash of the preceding line; the live opencode recorder's field name); a break is any record whose `prev` does not match the hash of the preceding line. Within the canonical history (Rotation, V1.1), a record first in its file but not first in the history chains to the previous file's last line; that form is design intent, owner-revisable — the measured opencode recorder does not do it, so real boundaries are boundary breaks, not errors.
+
+## Rotation (V1.1)
+
+Rotation: outcome files may rotate with numeric suffixes (`harness-outcomes.jsonl.1`, `.2`, …). Canonical history spans the files in suffix order — the live file first, then each higher suffix (older). The desired cross-file chain semantics are **design intent, owner-revisable**.
+
+Measured with this repo's diagnostic reader on 2026-11-11: the opencode recorder rotates **without** cross-file chaining (the first live record's `prev` does not match the hash of the previous file's last line), so every rotation boundary is a chain break under canonical-history semantics. The reader reports these as boundary breaks, not errors.
+
+## Writer requirements (whichever component writes leaf records — leaf or harness — the harness supplies:)
+
+- `sessionID` — the harness session identifier, verbatim.
+- `callID` — per SPEC §0: the id of the LAST tool call the routed leaf issued before the event; if none, the id of the call that routed to it.
+- `ts` — UTC, ISO-8601, from a clock the harness provides; never the model's guess.
+
+These are requirements, mechanism-neutral; no route (leaf-side vs harness-side logging) is implied.

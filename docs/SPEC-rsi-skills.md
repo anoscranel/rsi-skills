@@ -217,6 +217,11 @@ quantities, and conflating them is the trap this section must avoid.
   from *rewrites* (§4 rule 1) but aggregation itself is a sensitive-read surface: the core
   reads logs only to produce proposals, never exposes raw cross-skill telemetry outward,
   and its read scope is part of its own audit.
+
+### Scale and retention
+
+Scale and retention: outcome logs grow with harness traffic (observed ~25 MB live + ~52 MB rotated over the 2026-10-21 to 2026-11-11 window — 21 calendar days — on the reference device). Growth, rotation and retention are **harness-owned, operator's choice**; unjoinable outcome records are expected while no leaf events exist and are reported by the diagnostic reader, not treated as errors. No retention threshold is set by this spec.
+
 - **Honest gap:** no published system measures routing recall as a first-class production
   metric; the pieces exist (paired offline evals, online bandits, FSM monitors) but the
   composition is novel (⚠️ absence claim, not independently verified). We build a new

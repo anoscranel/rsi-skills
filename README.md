@@ -4,7 +4,7 @@ A design for letting Agent Skills improve themselves safely: skills log how they
 
 **Status: Stage 1, a specification.** This repo ships the shared core skill, the event-log schema and the safety spec. It does not ship anything that writes logs or proposals. No skill logs events yet, so none of the spec's success gates can be measured.
 
-**Current release: v0.3.0.**
+**Current release: v0.4.0.**
 
 ## What ships
 
@@ -55,6 +55,16 @@ Today these rules are written, not enforced. Only a lint checks the leaf's stati
 1. Copy `skills/ac-rsi/` into your harness's skills directory (opencode: `~/.agents/skills/ac-rsi/` or the project's `.opencode/skills/ac-rsi/`; Claude Code: `~/.claude/skills/ac-rsi/`).
 2. To log events, add a `00-rsi` leaf to a skill AND enable RSI logging in your harness (default off — nothing logs until you enable it).
 3. Add an outcome recorder that your harness runs. This repo does not provide one.
+
+## Diagnostics
+
+`python3 scripts/gate-read.py` joins the two logs (if present) and reports event counts, join rate, duplicate keys, and chain continuity across rotation boundaries — including the measured opencode rotation break. It is diagnostic-only: it does not evaluate the spec's §0 gate and writes nothing. To include a rotated/older outcome file (e.g. `harness-outcomes.jsonl.1`), run `python3 scripts/gate-read.py --outcome2 <path>` — without the flag no rotation boundary is checked or reported.
+
+Sample output (values from the reference device):
+
+```
+duplicate keys: 195 of 80,775 outcome keys
+```
 
 ## License
 
