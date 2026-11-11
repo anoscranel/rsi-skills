@@ -7,15 +7,23 @@ permissions:
 
 jobs:
   tests:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.8', '3.12']
+        include:
+          # Python 3.8 is unavailable on ubuntu-latest (26.04); pin 22.04 for that leg.
+          # 3.8 is the floor the reader is written to (no walrus/match/PEP-604).
+          - os: ubuntu-22.04
+            python-version: '3.8'
+          - os: ubuntu-latest
+            python-version: '3.12'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Show interpreter
+        run: python -VV
       - name: Run unittest suite
         run: python -m unittest discover -s tests -v

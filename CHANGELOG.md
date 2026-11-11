@@ -1,10 +1,15 @@
 # Changelog
 
-[unreleased]: https://github.com/anoscranel/rsi-skills/compare/v0.5.0...HEAD
+[unreleased]: https://github.com/anoscranel/rsi-skills/compare/v0.5.1...HEAD
+[0.5.0…0.5.1]: https://github.com/anoscranel/rsi-skills/compare/v0.5.0...v0.5.1
 [0.4.0…0.5.0]: https://github.com/anoscranel/rsi-skills/compare/v0.4.0...v0.5.0
 [0.2.0…0.3.0]: https://github.com/anoscranel/rsi-skills/compare/v0.2.0...v0.3.0
 [0.3.0…0.4.0]: https://github.com/anoscranel/rsi-skills/compare/v0.3.0...v0.4.0
 [0.1.0…0.2.0]: https://github.com/anoscranel/rsi-skills/compare/v0.1.0...v0.2.0
+
+## 0.5.1 — 2026-11-11
+
+CI fix: the Python 3.8 leg could not run on `ubuntu-latest` (now Ubuntu 26.04, which ships no 3.8), so the workflow pins that leg to `ubuntu-22.04`. Python 3.8 support is kept, not dropped — the reader is written to that floor (no walrus, no `match`, no PEP-604 unions). The 3.12 leg was unaffected. Found by the first real CI run on v0.5.0.
 
 ## 0.5.0 — 2026-11-11
 
