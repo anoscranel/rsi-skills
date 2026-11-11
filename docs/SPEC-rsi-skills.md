@@ -19,18 +19,21 @@ highest automation level that survives an adversarial audit (see References).
 
 **What "succeeds" means (condition made testable; ⚠️ the thresholds below are the pack owner's choices, no published basis — revisit after the pilot):** the RSI
 capability succeeds when ALL of these hold across a ≥30-day measured window on the pilot
-skills, against a pre-RSI baseline:
+skills, against the pre-proposal fired-leaf outcome rate measured from the same log:
 - **Trustworthy log:** ≥100 leaf events per pilot skill. Of those, ≥95 in every 100 have
   exactly one harness outcome record with the same sessionID and callID, written by a
   recorder the agent cannot write to (a different uid, or a hash chain anchored outside the
   agent's reach). Zero breaks in the chain. The improvement margin is fixed in a dated file
-  before the window opens.
+  before the window opens. The window opens only when a dated pilot card (start date, pilot
+  skills, recorder identity + first chain hash, margin) is committed; see docs/PILOT-2026-11.md.
 - **Replicated improvement:** ≥1 typed edit proposal passes the human+validator gate AND
   measurably improves the fired-leaf outcome rate (§6's honest metric) by that pre-registered
-  margin, replicated on BOTH pilot skills — not a single lucky prune on one.
+  margin, replicated on BOTH pilot skills — not a single lucky prune on one. (the leaf
+  stamps the last tool call it issued before the event; see schema)
 - **No safety regression:** zero poison-tripwire fires, zero unauthorized writes attributed
   to the RSI leaf or core across the window. ⚠️ No write monitor exists yet, so this bar
-  cannot be measured until one is built.
+  cannot be measured until one is built. Until the two files sit outside the agent's write
+  reach (rule 1), a matching outcome record cannot be treated as independent.
 
 **Status today:** no pilot skill logs leaf events yet, and no recorder ships with this
 repo, so none of these gates can be checked yet.
@@ -46,11 +49,15 @@ no published system does it safely for unverifiable rewrites (§4).
   It writes no proposals; from Stage 2 the shared core turns the logs into typed edit
   proposals. Domain segment `rsi`. First leaf in the index.
 - **Shared RSI core (`ac-rsi/`)** — a single, separately-installed, **immutable-at-runtime**
-  skill that owns the log schema, the outcome-scoring, the offline optimization pass, and
-  the proposal format. Audited once; no skill ever rewrites it. The Voyager/overlay pattern
-  (the agent program is fixed; only an append-only library changes — no in-place rewrite of stored skills by design (Voyager admits new skills after GPT-4 self-verification, so admission is still same-model-judged); lower-risk, not zero-risk; Voyager, arXiv 2305.16291).
+  skill that owns the log schema and, from Stage 2, the outcome-scoring, the offline
+  optimization pass, and the proposal format. Audited once; no skill ever rewrites it.
+  The Voyager/overlay pattern: the agent program is fixed; only an append-only library
+  changes. Voyager admits new skills after GPT-4 self-verification, so admission is still
+  same-model-judged — lower-risk, not zero-risk (Voyager, arXiv 2305.16291).
 - **Typed edit proposal** — a machine-checkable patch to a skill's routing text or leaf
   content, of a declared type (see §5). Emitted as an evidence card, never applied by RSI.
+- **Evidence card** — a dated record of one pass or proposal (claim, evidence, confidence,
+  sources), written outside every skill tree.
 - **Entrance / trigger-rate** — whether the correct subskill fires and helps. The standing
   unmeasured flank (the open problem in the subskills spec). RSI narrows it: the log measures fired-leaf outcome rate; trigger recall needs §6's offline paired replay.
 
@@ -61,8 +68,8 @@ no published system does it safely for unverifiable rewrites (§4).
 ├── ac-rsi/                           # SHARED CORE — installed once, immutable at runtime
 │   ├── SKILL.md                      # how to run an optimization pass + read the log
 │   ├── schema/log-schema.md          # the event-log format every skill appends to
-│   ├── scripts/optimize.py           # Stage 2, not built
-│   └── scripts/score.py              # Stage 2, not built
+│   ├── scripts/optimize.py           # Stage 2, not built — does not exist in this release (README "What does not ship")
+│   └── scripts/score.py              # Stage 2, not built — does not exist in this release (README "What does not ship")
 │
 └── <any-skill>/                      # EVERY pipeline skill
     ├── SKILL.md                      # index lists 00-rsi FIRST
@@ -71,7 +78,7 @@ no published system does it safely for unverifiable rewrites (§4).
         └── …task leaves…
 ```
 
-The **shared core holds the machinery** (no domain claim → no Rule 4 collision); each
+The **shared core holds the machinery** (no domain claim → no collision with the parent subskills standard's unique-scope rule); each
 **skill's `00-rsi` leaf holds only its own log and metric bindings**
 (scope = "observe THIS skill's triggers/leaves" → Rule 4 satisfied).
 This is exactly how Voyager's library sits outside the agent program (Voyager, arXiv 2305.16291).
@@ -99,11 +106,12 @@ This leaf NEVER edits a file, NEVER installs, and NEVER blocks a task. It only a
 and proposes.
 
 ## On every routing event (append-only — a hard rule, not just an instruction)
-Append one line to `~/.local/share/opencode/rsi/leaf-events.jsonl` (opencode default; set your harness's equivalent; outside every skill tree) with `{ ts, skill, leaf_routed, trigger_text, model, sessionID, callID }`. Never write a file inside a skill tree at run time.
+If the operator has enabled RSI logging (harness flag `rsi.logging.enabled`, default off), append one line to `~/.local/share/opencode/rsi/leaf-events.jsonl` (opencode default; set your harness's equivalent; outside every skill tree) with `{ ts, skill, leaf_routed, trigger_text, model, sessionID, callID }`. If not enabled, do nothing. Never write a file inside a skill tree at run time.
 This leaf NEVER edits, deletes, or truncates any file — including the log itself
 (a hard rule in SPEC-rsi-skills §4 rule 1; nothing enforces it at runtime yet).
 Outcome records are written by the HARNESS or validator, NOT by this skill —
 a skill never records its own outcome (SPEC-rsi-skills §4 rule 3).
+Never log secrets, credentials, or personal data. `trigger_text` is the index-row text copied from SKILL.md — never the user's words.
 
 ## Stage 2 only (propose, never apply)
 This leaf writes no proposals. From Stage 2, when the operator (or the shared `ac-rsi`
@@ -129,7 +137,9 @@ written rules only; rule 1 says what is and is not enforced.
    Today append-only is a written rule that nothing enforces at runtime. The lint
    (agent-skills-subskills `lint_tree.py`) checks the leaf's static shape only. The runtime
    safeguards are the harness recorder's hash chain (it detects edits but cannot stop them)
-   and human review. Before Stage 2, the log must move outside the agent's write reach.
+   and human review. Before the Stage-1 gate is evaluated, BOTH files — leaf-events.jsonl
+   and harness-outcomes.jsonl — must sit outside the agent's write reach, matching the
+   §0 recorder bar.
    RSI *proposes*; the
    human+validator gate *disposes*. (No published system self-installs **unverifiable**
    rewrites safely — see DGM, arXiv 2505.22954, and SGM, arXiv 2510.10232; verified-rewrite
@@ -172,6 +182,8 @@ ClawTrace (arXiv 2604.23853): **"preserve" patches drove all quality regressions
 | **preserve (keep observed behaviour)** | keeps observed successful behaviour as trigger text or content | highest | **strictest** — full audit pass |
 
 Repair is the type that adds steps. Preserve stays the strictest lane.
+
+Every proposal must name the exact line it would change; intent-level proposals are not reviewable and not admissible.
 
 Additive proposals are the exception, not the default. The optimizer (offline bandit /
 GEPA-style; GEPA, arXiv 2507.19457) emits prune-lane proposals first.

@@ -4,6 +4,8 @@ A design for letting Agent Skills improve themselves safely: skills log how they
 
 **Status: Stage 1, a specification.** This repo ships the shared core skill, the event-log schema and the safety spec. It does not ship anything that writes logs or proposals. No skill logs events yet, so none of the spec's success gates can be measured.
 
+**Current release: v0.2.0.**
+
 ## What ships
 
 | Path | What it is |
@@ -11,6 +13,8 @@ A design for letting Agent Skills improve themselves safely: skills log how they
 | `skills/ac-rsi/` | The shared core skill. It owns the event-log schema. It writes nothing. |
 | `skills/ac-rsi/schema/log-schema.md` | Two record types: a *leaf record* (written by a skill) and an *outcome record* (written by the harness, never by the skill). They join on `sessionID` + `callID`. |
 | `docs/SPEC-rsi-skills.md` | The stage ladder, the success gates, the safety rules and the research they rest on (9 arXiv papers). |
+| `scripts/gate-read.py` | A diagnostic join-report of the two logs (per-skill counts, join rate, chain continuity, trust tally). Diagnostic-only — it does not evaluate the §0 gate. |
+| `docs/PILOT-2026-11.md` | Pilot-window template (dates, skills, recorder, margin — owner-fillable). Not pre-registered until the owner fills and commits it. |
 
 ## What does not ship
 
@@ -35,7 +39,7 @@ The safety rules (spec §4) in brief:
 3. An inconclusive signal produces no proposal.
 4. A skill whose triggers drift outside its scope goes back to full review.
 
-Today these rules are written, not enforced. Only a lint checks the leaf's static shape. Before Stage 2, the log must move out of the agent's write reach.
+Today these rules are written, not enforced. Only a lint checks the leaf's static shape. Before the Stage-1 gate is evaluated, BOTH files — leaf-events.jsonl and harness-outcomes.jsonl — must sit outside the agent's write reach, matching the §0 recorder bar.
 
 ## Stages
 
@@ -48,8 +52,8 @@ Today these rules are written, not enforced. Only a lint checks the leaf's stati
 
 ## Install
 
-1. Copy `skills/ac-rsi/` into your harness's skills directory (opencode: `~/.agents/skills/ac-rsi/` or `~/.config/opencode/skills/ac-rsi/`; Claude Code: `~/.claude/skills/ac-rsi/`).
-2. To log events, add a `00-rsi` leaf to a skill, following the reference leaf above.
+1. Copy `skills/ac-rsi/` into your harness's skills directory (opencode: `~/.agents/skills/ac-rsi/` or the project's `.opencode/skills/ac-rsi/`; Claude Code: `~/.claude/skills/ac-rsi/`).
+2. To log events, add a `00-rsi` leaf to a skill AND enable RSI logging in your harness (default off — nothing logs until you enable it).
 3. Add an outcome recorder that your harness runs. This repo does not provide one.
 
 ## License

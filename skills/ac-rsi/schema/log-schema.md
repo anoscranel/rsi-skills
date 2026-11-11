@@ -14,7 +14,7 @@ There are two record types in two files. The leaf writes leaf records to `leaf-e
 | `trigger_text` | string | the index row text, copied verbatim from SKILL.md by the leaf; never the user's words; the optimizer re-derives it from the skill file and ignores the logged value. |
 | `model` | string | the model that produced the routing |
 | `sessionID` | string | the harness session id |
-| `callID` | string | the harness id of the tool call this event belongs to; the join key with the outcome record |
+| `callID` | string | the harness id of the LAST tool call the routed leaf issued before the event; if none, the id of the call that routed to it; the join key with the outcome record |
 
 A leaf record never contains outcome fields.
 
@@ -47,3 +47,4 @@ Leaf record:
    telemetry, not a data store.
 4. **Fired-leaf outcome rate** is the honest metric derivable from this log. Trigger
    *recall* requires the offline paired-replay (SPEC §6), not this log alone.
+5. **Chain** — each outcome record carries `prev` (the hash of the preceding line; the live opencode recorder's field name); a break is any record whose `prev` does not match the hash of the preceding line.

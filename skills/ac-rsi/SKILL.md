@@ -1,6 +1,6 @@
 ---
 name: ac-rsi
-description: "Shared Recursive Self-Improvement core. Owns the event-log schema and (in Stage 2, not built yet) the offline optimization pass that turns per-skill 00-rsi logs into typed edit proposals. Installed once; immutable at runtime. Use when reading or validating 00-rsi logs across skills."
+description: "Shared Recursive Self-Improvement core. Owns the event-log schema and (in Stage 2, not built yet) the offline optimization pass that turns per-skill 00-rsi logs into typed edit proposals. Installed once; immutable at runtime. Use when reading or reporting on 00-rsi event logs (a diagnostic reader ships; no validator or gate evaluator does)."
 license: MIT
 metadata:
   domain: rsi
@@ -19,12 +19,11 @@ is fixed; only the append-only logs change.
 
 ## Stage posture
 
-- **Stage 1 (NOW):** log-only. This core provides the schema and reads logs. It writes NO
-  proposals and runs NO optimizer. Nothing self-modifies.
+- **Stage 1 (NOW):** log-only. This core provides the schema; a diagnostic join-report script ships at scripts/gate-read.py (diagnostic-only — it does not evaluate the §0 gate). No gate evaluator exists yet.
 - **Stage 2 (gated, NOT built):** `scripts/optimize.py` + `scripts/score.py` — an offline
   bandit/GEPA pass producing typed edit proposals as evidence cards. Built only after the
   Stage-1 quantitative gates (SPEC §0) pass, and human-approved.
-- Stage 1 has no reader: no script measures the §0 gate yet.
+- Stage 1 has no gate evaluator: no script measures the §0 gate yet.
 
 ## Hard rules (SPEC §4 — non-negotiable)
 
