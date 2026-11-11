@@ -9,11 +9,14 @@ It reads two JSONL files and reports join integrity and denominators:
   - unmatched counts on each side
   - duplicate (sessionID, callID) keys counted on BOTH sides
   - chain-continuity classified over the canonical history
-    (live file first, then the rotated/older file when --outcome2 is given):
-    mid-file breaks (inside one file), the rotation boundary
-    (live's first `prev` vs the rotated file's last line — reported once,
-    labeled), and per-file break counts. When the boundary hash matches,
-    the cross-file-intact case prints explicitly.
+    (live file first, then each rotated/older file given with --outcome2, in
+    the order supplied): mid-file breaks (inside each file), EVERY rotation
+    boundary in the chain — each newer file's first `prev` against the
+    SHA-256 of the older file's last line, reported per boundary and labeled
+    (numbered when two or more rotated files are given, the existing
+    single-boundary line when exactly one is) — and per-file break counts.
+    When a boundary hash matches, the cross-file-intact case prints
+    explicitly.
   - validator_verdict tally on outcome records
   - `--since` / `--until` ISO-8601 window flags on `ts`
     (filter both sides; excluded records are reported)
@@ -25,8 +28,9 @@ anywhere; this script only reads and prints. Exit 0 whenever a report is
 produced.
 
 Paths default to the opencode locations and can be overridden with
---leaf / --outcome; --outcome2 names a rotated/older outcome file. Multiple
-passes for `.2`+ are NOT in scope — one rotation level.
+--leaf / --outcome; --outcome2 names a rotated/older outcome file and may be
+repeated for `.2`, `.3`, … (nearest-newest first) — the boundary check then
+chains across every file, newest to oldest.
 Usage: python3 scripts/gate-read.py --help
 """
 
@@ -135,38 +139,57 @@ def chain_breaks_per_file(path):
     return breaks, checked
 
 
-def boundary_check(live_path, rotated_path):
-    """Classify the rotation boundary: live file's FIRST `prev`-bearing
-    record vs the SHA-256 of the ROTATED file's LAST line.
+def boundary_check(newer_path, older_path):
+    """Classify ONE rotation boundary: the NEWER file's first `prev`-bearing
+    record vs the SHA-256 of the OLDER file's LAST line.
 
-    Returns (status, live_first_prev, rotated_last_hash) where status is
+    Returns (status, newer_first_prev, older_last_hash) where status is
     'match' | 'break' | 'absent-rotated' | 'absent-live' | 'no-prev'.
-    All hashes use the raw line as written, without its trailing newline."""
-    if not os.path.isfile(rotated_path):
+    (The 'absent-rotated'/'absent-live' names are kept for call-site
+    compatibility: they mean "older file absent/empty" and "newer file
+    absent" respectively.) All hashes use the raw line as written, without
+    its trailing newline."""
+    if not os.path.isfile(older_path):
         return "absent-rotated", None, None
-    rotated_lines = read_lines(rotated_path)
-    if not rotated_lines:
+    older_lines = read_lines(older_path)
+    if not older_lines:
         return "absent-rotated", None, None
-    rotated_last_hash = sha256_text(rotated_lines[-1])
-    if not os.path.isfile(live_path):
-        return "absent-live", None, rotated_last_hash
-    live_lines = read_lines(live_path)
-    live_first_prev = None
+    older_last_hash = sha256_text(older_lines[-1])
+    if not os.path.isfile(newer_path):
+        return "absent-live", None, older_last_hash
+    newer_lines = read_lines(newer_path)
+    newer_first_prev = None
     found = False
-    for line in live_lines:
+    for line in newer_lines:
         try:
             record = json.loads(line)
         except ValueError:
             continue
         if isinstance(record, dict) and "prev" in record:
-            live_first_prev = record.get("prev")
+            newer_first_prev = record.get("prev")
             found = True
             break
     if not found:
-        return "no-prev", None, rotated_last_hash
-    if live_first_prev == rotated_last_hash:
-        return "match", live_first_prev, rotated_last_hash
-    return "break", live_first_prev, rotated_last_hash
+        return "no-prev", None, older_last_hash
+    if newer_first_prev == older_last_hash:
+        return "match", newer_first_prev, older_last_hash
+    return "break", newer_first_prev, older_last_hash
+
+
+def boundary_chain(live_path, rotated_paths):
+    """Walk the canonical order [live, rotated[0], rotated[1], …] and return
+    one (newer_label, older_label, status, newer_first_prev, older_last_hash)
+    tuple per ADJACENT pair, newest first. Labels are 'live' for the live
+    file and the basename for a rotated file. Absent/empty files are
+    classified, never raised."""
+    labels = ["live"] + [os.path.basename(path) for path in rotated_paths]
+    paths = [live_path] + list(rotated_paths)
+    pairs = []
+    for index in range(len(paths) - 1):
+        status, prev, last_hash = boundary_check(paths[index], paths[index + 1])
+        pairs.append((labels[index], labels[index + 1], status, prev, last_hash))
+    return pairs
+
 
 
 def duplicate_tally(records, extra_records):
@@ -215,12 +238,17 @@ def main(argv):
     )
     parser.add_argument(
         "--outcome2",
-        default=None,
+        action="append",
+        default=[],
+        metavar="PATH",
         help=(
-            "path to a rotated/older harness-outcomes.jsonl (e.g. "
-            "harness-outcomes.jsonl.1). The canonical history is the live "
-            "file first, then this file. Multiple passes for `.2`+ are NOT "
-            "in scope — one rotation level. Default: no rotated file."
+            "rotated/older outcome file(s), nearest-newest first (e.g. "
+            "--outcome2 f.1 --outcome2 f.2); each may repeat. The canonical "
+            "history is the live file first, then each file in the order "
+            "given, and every adjacent pair is checked as a rotation "
+            "boundary. Order is used as given and is not checked against "
+            "the numeric suffixes: listing .2 before .1 yields a "
+            "meaningless break on every pair. Default: none."
         ),
     )
     parser.add_argument(
@@ -240,10 +268,13 @@ def main(argv):
     # -- read raw lines once; report file sizes (counts) before anything else.
     leaf_records, leaf_malformed = read_jsonl(args.leaf)
     outcome_records, outcome_malformed = read_jsonl(args.outcome)
+    rotated_paths = list(args.outcome2 or [])
     rotated_records = []
     rotated_malformed = 0
-    if args.outcome2:
-        rotated_records, rotated_malformed = read_jsonl(args.outcome2)
+    for rotated_path in rotated_paths:
+        file_records, file_malformed = read_jsonl(rotated_path)
+        rotated_records.extend(file_records)
+        rotated_malformed += file_malformed
 
     # -- window filter on ts (both sides; report how many were excluded)
     leaf_windowed = []
@@ -312,8 +343,8 @@ def main(argv):
     print("RSI Stage-1 diagnostic join-report")
     print("leaf file:      %s" % args.leaf)
     print("outcome file:   %s" % args.outcome)
-    if args.outcome2:
-        print("outcome file 2 (rotated/older): %s" % args.outcome2)
+    for offset, rotated_path in enumerate(rotated_paths):
+        print("outcome file %d (rotated/older): %s" % (offset + 2, rotated_path))
     if args.since or args.until:
         print(
             "window: since=%s until=%s"
@@ -335,7 +366,7 @@ def main(argv):
     print("")
     print("Outcome records (total): %d" % len(outcome_windowed))
     print("Malformed outcome lines: %d" % outcome_malformed)
-    if args.outcome2:
+    if rotated_paths:
         print("Rotated outcome records (total): %d" % len(rotated_windowed))
         print("Malformed rotated outcome lines: %d" % rotated_malformed)
     if trust_tally:
@@ -381,39 +412,81 @@ def main(argv):
         )
     else:
         print("Live-outcome chain (`prev`, mid-file): no `prev`-bearing records checked")
-    if args.outcome2:
-        rotated_breaks, rotated_checked = chain_breaks_per_file(args.outcome2)
-        if rotated_checked:
-            print(
-                "Rotated-outcome chain (`prev`, mid-file): %d break(s) over %d checked link(s)"
-                % (rotated_breaks, rotated_checked)
-            )
-        else:
-            print("Rotated-outcome chain (`prev`, mid-file): no `prev`-bearing records checked")
-        status, live_first_prev, rotated_last_hash = boundary_check(
-            args.outcome, args.outcome2
-        )
-        if status == "match":
-            print(
-                "Rotation boundary: cross-file chain INTACT (live first `prev` "
-                "matches the hash of the rotated file's last line)"
-            )
-        elif status == "break":
-            print(
-                "Rotation boundary: boundary break (live file's first `prev` "
-                "%s does not match the hash of the rotated file's last line %s "
-                "— reported as a boundary break, not an error)"
-                % (
-                    str(live_first_prev)[:12] + "..." if live_first_prev is not None else "<none>",
-                    str(rotated_last_hash)[:12] + "..." if rotated_last_hash is not None else "<none>",
+    if rotated_paths:
+        if len(rotated_paths) == 1:
+            rotated_breaks, rotated_checked = chain_breaks_per_file(rotated_paths[0])
+            if rotated_checked:
+                print(
+                    "Rotated-outcome chain (`prev`, mid-file): %d break(s) over %d checked link(s)"
+                    % (rotated_breaks, rotated_checked)
                 )
+            else:
+                print("Rotated-outcome chain (`prev`, mid-file): no `prev`-bearing records checked")
+        else:
+            for offset, rotated_path in enumerate(rotated_paths):
+                rotated_breaks, rotated_checked = chain_breaks_per_file(rotated_path)
+                if rotated_checked:
+                    print(
+                        "Rotated-outcome chain %d (%s) (`prev`, mid-file): %d break(s) over %d checked link(s)"
+                        % (offset + 1, os.path.basename(rotated_path),
+                           rotated_breaks, rotated_checked)
+                    )
+                else:
+                    print(
+                        "Rotated-outcome chain %d (%s) (`prev`, mid-file): no `prev`-bearing records checked"
+                        % (offset + 1, os.path.basename(rotated_path))
+                    )
+        if len(rotated_paths) == 1:
+            status, live_first_prev, rotated_last_hash = boundary_check(
+                args.outcome, rotated_paths[0]
             )
-        elif status == "absent-rotated":
-            print("Rotation boundary: rotated file missing or empty — no boundary checked")
-        elif status == "absent-live":
-            print("Rotation boundary: live file missing — no boundary checked")
-        else:  # no-prev
-            print("Rotation boundary: no `prev`-bearing record in the live file — no boundary checked")
+            if status == "match":
+                print(
+                    "Rotation boundary: cross-file chain INTACT (live first `prev` "
+                    "matches the hash of the rotated file's last line)"
+                )
+            elif status == "break":
+                print(
+                    "Rotation boundary: boundary break (live file's first `prev` "
+                    "%s does not match the hash of the rotated file's last line %s "
+                    "— reported as a boundary break, not an error)"
+                    % (
+                        str(live_first_prev)[:12] + "..." if live_first_prev is not None else "<none>",
+                        str(rotated_last_hash)[:12] + "..." if rotated_last_hash is not None else "<none>",
+                    )
+                )
+            elif status == "absent-rotated":
+                print("Rotation boundary: rotated file missing or empty — no boundary checked")
+            elif status == "absent-live":
+                print("Rotation boundary: live file missing — no boundary checked")
+            else:  # no-prev
+                print("Rotation boundary: no `prev`-bearing record in the live file — no boundary checked")
+        else:
+            for index, (newer, older, status, newer_prev, older_hash) in enumerate(
+                boundary_chain(args.outcome, rotated_paths), start=1
+            ):
+                label = "Rotation boundary %d (%s vs %s):" % (index, newer, older)
+                if status == "match":
+                    print("%s cross-file chain INTACT" % (label,))
+                elif status == "break":
+                    print(
+                        "%s break — %s does not match %s (reported as a boundary "
+                        "break, not an error)"
+                        % (
+                            label,
+                            str(newer_prev)[:8] + "..." if newer_prev is not None else "<none>",
+                            str(older_hash)[:8] + "..." if older_hash is not None else "<none>",
+                        )
+                    )
+                elif status == "absent-rotated":
+                    print("%s older file missing or empty — no boundary checked" % (label,))
+                elif status == "absent-live":
+                    print("%s newer file missing — no boundary checked" % (label,))
+                else:  # no-prev
+                    print(
+                        "%s no `prev`-bearing record in the newer file — no boundary checked"
+                        % (label,)
+                    )
     print("")
     print(DIAGNOSTIC_NOTE)
     print("STATUS: GATE NOT EVALUABLE (diagnostic report only)")

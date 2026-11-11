@@ -1,11 +1,24 @@
 # Changelog
 
-[unreleased]: https://github.com/anoscranel/rsi-skills/compare/v0.5.1...HEAD
+[unreleased]: https://github.com/anoscranel/rsi-skills/compare/v0.6.0...HEAD
+[0.5.1…0.6.0]: https://github.com/anoscranel/rsi-skills/compare/v0.5.1...v0.6.0
 [0.5.0…0.5.1]: https://github.com/anoscranel/rsi-skills/compare/v0.5.0...v0.5.1
 [0.4.0…0.5.0]: https://github.com/anoscranel/rsi-skills/compare/v0.4.0...v0.5.0
 [0.2.0…0.3.0]: https://github.com/anoscranel/rsi-skills/compare/v0.2.0...v0.3.0
 [0.3.0…0.4.0]: https://github.com/anoscranel/rsi-skills/compare/v0.3.0...v0.4.0
 [0.1.0…0.2.0]: https://github.com/anoscranel/rsi-skills/compare/v0.1.0...v0.2.0
+
+## 0.6.0 — 2026-11-11
+
+The reader now matches the schema it ships with. Drafted from the 2026-11-11 cycle-4 frozen scope only.
+
+### Added
+- `scripts/gate-read.py`: `--outcome2` is repeatable (nearest-newest first), and the rotation-boundary check chains across every adjacent pair in the canonical order `[live, .1, .2, …]`; each boundary is reported and labeled, numbered from `Rotation boundary 1` when two or more rotated files are supplied. With exactly one rotated file the output line is unchanged from v0.5.1; the compatibility claim is defended by `test_multi_boundary_chain` and by the single-rotated cases in the suite. An absent or empty file in the chain is reported, never raised.
+- `tests/test_gate_read.py`: five new contract tests — chained rotation boundaries (`test_multi_boundary_chain`), the absent/empty/no-prev boundary branches (`test_chain_absent_and_empty_branches`), `--until` boundary inclusivity, same-size-write detection by content hash and mtime, and the unmatched-leaf count. Suite: 11 → 16 tests.
+
+### Fixed
+- The three test gaps stated in 0.5.0 are now asserted: `--until` inclusivity, same-size-write detection, and the unmatched-leaf count — plus the join-denominator survivor (a leaf record with no `callID` is not joinable and must not inflate the denominator).
+- README Diagnostics: rotation guidance now covers repeated `--outcome2` passes and says each adjacent pair is checked and labeled.
 
 ## 0.5.1 — 2026-11-11
 

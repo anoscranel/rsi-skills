@@ -88,9 +88,13 @@ class TestGateReadContract(GateReadCase):
 
     # 2
     def test_join_rate_and_denominator(self):
+        # M10 survivor: the 4th leaf has no callID, so it is NOT joinable and
+        # must stay out of the denominator while still counting in the total.
         leaf = self.write_jsonl("leaf.jsonl", [
             {"sessionID": "s%d" % i, "callID": "c%d" % i, "skill": "ac-%d" % i}
             for i in (1, 2, 3)
+        ] + [
+            {"sessionID": "s4", "skill": "ac-4"},
         ])
         outcome = self.write_jsonl("outcome.jsonl", [
             {"sessionID": "s%d" % i, "callID": c, "trust": "untrusted"}
@@ -98,6 +102,7 @@ class TestGateReadContract(GateReadCase):
         ])
         result = self.run_reader("--leaf", leaf, "--outcome", outcome)
         self.assertEqual(result.returncode, 0, result.stdout)
+        self.assert_in("Leaf events (total): 4", result.stdout)
         self.assert_in("Join rate: 2/3 matched (66.67%)", result.stdout)
         self.assert_in("  ac-1: 1", result.stdout)
         self.assert_in("  ac-2: 1", result.stdout)
@@ -278,6 +283,138 @@ class TestGateReadContract(GateReadCase):
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assert_in("--outcome2", result.stdout)
         self.assert_in("usage:", result.stdout)
+
+    # 11 — audit M6: `--until` is INCLUSIVE at its boundary.
+    def test_window_until_inclusive(self):
+        stamp = "2026-11-11T12:00:00+00:00"
+        leaf = self.write_jsonl("leaf.jsonl", [
+            {"sessionID": "s1", "callID": "c1", "skill": "ac-a", "ts": stamp},
+            {"sessionID": "s2", "callID": "c2", "skill": "ac-a",
+             "ts": "2026-11-11T12:00:01+00:00"},
+        ])
+        outcome = self.write_jsonl("outcome.jsonl", [
+            {"sessionID": "s1", "callID": "c1", "trust": "untrusted", "ts": stamp},
+        ])
+        result = self.run_reader(
+            "--leaf", leaf, "--outcome", outcome,
+            "--until", "2026-11-11T12:00:00",
+        )
+        self.assertEqual(result.returncode, 0, result.stdout)
+        # The record ON the boundary is kept; the one second later is excluded.
+        self.assert_in("Leaf events (total): 1", result.stdout)
+        self.assert_in("window excluded: 1 leaf, 0 live-outcome, 0 rotated-outcome record(s)",
+                       result.stdout)
+        self.assert_in("Join rate: 1/1 matched (100.00%)", result.stdout)
+        self.assert_in("Outcome records (total): 1", result.stdout)
+
+    # 12 — audit M14: nothing is written, and a same-size rewrite is caught.
+    def test_writes_nothing_detects_same_size_rewrite(self):
+        leaf = self.write_jsonl("leaf.jsonl", [
+            {"sessionID": "s1", "callID": "c1", "skill": "ac-a"},
+        ])
+        outcome = self.write_jsonl("outcome.jsonl", [
+            {"sessionID": "s1", "callID": "c1", "trust": "untrusted"},
+        ], chain=True)
+        sentinel = self.write_jsonl("sentinel.jsonl", [
+            {"sessionID": "s9", "callID": "c9", "trust": "trusted"},
+        ])
+        with open(sentinel, "r", encoding="utf-8") as handle:
+            before_text = handle.read()
+        before_hash = hashlib.sha256(before_text.encode("utf-8")).hexdigest()
+        before_stat = os.stat(sentinel)
+
+        result = self.run_reader(
+            "--leaf", leaf, "--outcome", outcome, "--outcome2", sentinel
+        )
+        self.assertEqual(result.returncode, 0, result.stdout)
+
+        with open(sentinel, "r", encoding="utf-8") as handle:
+            after_text = handle.read()
+        after_hash = hashlib.sha256(after_text.encode("utf-8")).hexdigest()
+        after_stat = os.stat(sentinel)
+        # Content hash proves no same-size overwrite happened.
+        self.assertEqual(after_hash, before_hash)
+        self.assertEqual(after_text, before_text)
+        self.assertEqual(len(after_text), len(before_text))
+        self.assertEqual(after_stat.st_mtime_ns, before_stat.st_mtime_ns)
+        self.assertEqual(after_stat.st_size, before_stat.st_size)
+
+    # 13 — audit M18: the unmatched-leaf line is asserted on its own.
+    def test_unmatched_leaf_count(self):
+        leaf = self.write_jsonl("leaf.jsonl", [
+            {"sessionID": "s1", "callID": "c1", "skill": "ac-a"},
+            {"sessionID": "s2", "callID": "c2", "skill": "ac-b"},
+        ])
+        outcome = self.write_jsonl("outcome.jsonl", [
+            {"sessionID": "s1", "callID": "c1", "trust": "untrusted"},
+        ])
+        result = self.run_reader("--leaf", leaf, "--outcome", outcome)
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assert_in("Unmatched leaf events (joinable, no outcome): 1", result.stdout)
+        self.assert_in("Join rate: 1/2 matched (50.00%)", result.stdout)
+
+    # 14 — K1: the 3-file chain prints one labeled line per boundary.
+    def test_multi_boundary_chain(self):
+        # oldest: .2  →  middle: .1 (first prev links to .2's last line, INTACT)
+        # live: first prev deliberately wrong (BREAK).
+        oldest_line = render({"sessionID": "s0", "callID": "c0"})
+        oldest = self.path("outcome.jsonl.2")
+        with open(oldest, "w", encoding="utf-8") as handle:
+            handle.write(oldest_line + "\n")
+
+        middle_first = render({
+            "sessionID": "s1", "callID": "c1", "prev": sha256_text(oldest_line),
+        })
+        middle = self.path("outcome.jsonl.1")
+        with open(middle, "w", encoding="utf-8") as handle:
+            handle.write(middle_first + "\n")
+
+        live = self.path("outcome.jsonl")
+        with open(live, "w", encoding="utf-8") as handle:
+            handle.write(render({
+                "sessionID": "s2", "callID": "c2", "prev": "0" * 64,
+            }) + "\n")
+
+        result = self.run_reader(
+            "--leaf", self.path("no-leaf.jsonl"), "--outcome", live,
+            "--outcome2", middle, "--outcome2", oldest,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assert_in("Rotation boundary 1 (live vs outcome.jsonl.1): break", result.stdout)
+        self.assert_in("reported as a boundary break, not an error", result.stdout)
+        self.assert_in("Rotation boundary 2 (outcome.jsonl.1 vs outcome.jsonl.2): "
+                       "cross-file chain INTACT", result.stdout)
+        self.assertNotIn("Traceback", result.stdout)
+
+    # 15b — K1: absent/empty/no-prev members labeled, never claimed INTACT.
+    def test_chain_absent_and_empty_branches(self):
+        r2 = self.write_jsonl("o.2", [{"sessionID": "s0", "callID": "c0"}])
+        r1 = self.path("o.1")
+        with open(r1, "w", encoding="utf-8") as h:
+            h.write(render({"sessionID": "s1", "callID": "c1",
+                            "prev": sha256_text(render({"sessionID": "s0", "callID": "c0"}))}) + "\n")
+        live = self.write_jsonl("o", [{"sessionID": "s1", "callID": "c1"}])
+        gone, nol = self.path("absent.jsonl"), self.path("no-leaf.jsonl")
+        run = lambda o, *r: self.run_reader("--leaf", nol, "--outcome", o,
+                                            *[a for p in r for a in ("--outcome2", p)]).stdout
+        out = run(live, gone)
+        self.assertIn("Rotation boundary: rotated file missing or empty", out)
+        self.assertNotIn("INTACT", out)
+        out = run(live, r1)
+        self.assertIn("Rotation boundary: no `prev`-bearing record in the live file", out)
+        self.assertNotIn("INTACT", out)
+        out = run(gone, r1)
+        self.assertIn("Rotation boundary: live file missing", out)
+        self.assertNotIn("INTACT", out)
+        out = run(gone, r1, r2)
+        self.assertIn("Rotation boundary 1 (live vs o.1): newer file missing", out)
+        self.assertIn("Rotation boundary 2 (o.1 vs o.2): cross-file chain INTACT", out)
+        empty = self.path("e.1")
+        open(empty, "w").close()
+        out = run(live, empty, r2)
+        self.assertIn("Rotation boundary 1 (live vs e.1): older file missing or empty", out)
+        self.assertIn("Rotation boundary 2 (e.1 vs o.2): no `prev`-bearing record", out)
+        self.assertNotIn("Traceback", out)
 
 
 if __name__ == "__main__":

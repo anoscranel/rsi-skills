@@ -4,7 +4,7 @@ A design for letting Agent Skills improve themselves safely: skills log how they
 
 **Status: Stage 1, a specification.** This repo ships the shared core skill, the event-log schema and the safety spec. It does not ship anything that writes logs or proposals. No skill logs events yet, so none of the spec's success gates can be measured.
 
-**Current release: v0.5.1.**
+**Current release: v0.6.0.**
 
 ## What ships
 
@@ -59,7 +59,7 @@ Today these rules are written, not enforced. Only a lint checks the leaf's stati
 
 ## Diagnostics
 
-`python3 scripts/gate-read.py` joins the two logs (if present) and reports event counts, join rate, duplicate keys, and chain continuity across rotation boundaries — including the measured opencode rotation break. It is diagnostic-only: it does not evaluate the spec's §0 gate and writes nothing. To include a rotated/older outcome file (e.g. `harness-outcomes.jsonl.1`), run `python3 scripts/gate-read.py --outcome2 <path>` — without the flag no rotation boundary is checked or reported.
+`python3 scripts/gate-read.py` joins the two logs (if present) and reports event counts, join rate, duplicate keys, and chain continuity across rotation boundaries — including the measured opencode rotation break. It is diagnostic-only: it does not evaluate the spec's §0 gate and writes nothing. To include rotated/older outcome files, pass `--outcome2 <path>` once per file (nearest-newest first, e.g. `--outcome2 harness-outcomes.jsonl.1 --outcome2 harness-outcomes.jsonl.2`); each adjacent pair is checked and labeled — order is taken as given, so listing `.2` before `.1` reports a meaningless break on every pair, and without the flag no rotation boundary is checked or reported.
 
 Sample output (values from the reference device):
 
