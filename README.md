@@ -4,7 +4,7 @@ A design for letting Agent Skills improve themselves safely: skills log how they
 
 **Status: Stage 1, a specification.** This repo ships the shared core skill, the event-log schema and the safety spec. It does not ship anything that writes logs or proposals. No skill logs events yet, so none of the spec's success gates can be measured.
 
-**Current release: v0.4.0.**
+**Current release: v0.5.0.**
 
 ## What ships
 
@@ -15,6 +15,7 @@ A design for letting Agent Skills improve themselves safely: skills log how they
 | `docs/SPEC-rsi-skills.md` | The stage ladder, the success gates, the safety rules and the research they rest on (9 arXiv papers). |
 | `scripts/gate-read.py` | A diagnostic join-report of the two logs (per-skill counts, join rate, chain continuity, trust tally). Diagnostic-only — it does not evaluate the §0 gate. |
 | `docs/PILOT-2026-11.md` | Pilot-window template (dates, skills, recorder, margin — owner-fillable). Not pre-registered until the owner fills and commits it. |
+| `CONTRIBUTING.md` | How to propose a change: issues only, human review, accepted scope. |
 
 ## What does not ship
 
@@ -67,5 +68,7 @@ duplicate keys: 195 of 80,775 outcome keys
 ```
 
 ## License
+
+Contributions follow [CONTRIBUTING.md](CONTRIBUTING.md).
 
 MIT, © 2026 Anos Cranel. See [LICENSE](LICENSE).

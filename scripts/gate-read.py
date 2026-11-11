@@ -169,30 +169,6 @@ def boundary_check(live_path, rotated_path):
     return "break", live_first_prev, rotated_last_hash
 
 
-def count_first_prev_checks(path):
-    """(present, missing) `prev`-field counts in one file, for the report."""
-    present = 0
-    missing = 0
-    for record, _line in read_records_with_lines(path):
-        if isinstance(record, dict):
-            if "prev" in record:
-                present += 1
-            else:
-                missing += 1
-    return present, missing
-
-
-def read_records_with_lines(path):
-    """[(parsed record or None, raw line)] for a JSONL file; [] if missing."""
-    pairs = []
-    for line in read_lines(path):
-        try:
-            pairs.append((json.loads(line), line))
-        except ValueError:
-            pairs.append((None, line))
-    return pairs
-
-
 def duplicate_tally(records, extra_records):
     """Count of (sessionID, callID) keys appearing more than once, and the
     total number of joinable records, over records + extra_records."""

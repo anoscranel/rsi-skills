@@ -1,9 +1,23 @@
 # Changelog
 
-[unreleased]: https://github.com/anoscranel/rsi-skills/compare/v0.4.0...HEAD
+[unreleased]: https://github.com/anoscranel/rsi-skills/compare/v0.5.0...HEAD
+[0.4.0…0.5.0]: https://github.com/anoscranel/rsi-skills/compare/v0.4.0...v0.5.0
 [0.2.0…0.3.0]: https://github.com/anoscranel/rsi-skills/compare/v0.2.0...v0.3.0
 [0.3.0…0.4.0]: https://github.com/anoscranel/rsi-skills/compare/v0.3.0...v0.4.0
 [0.1.0…0.2.0]: https://github.com/anoscranel/rsi-skills/compare/v0.1.0...v0.2.0
+
+## 0.5.0 — 2026-11-11
+
+Repeatable verification and repository hygiene. Drafted from the 2026-11-11 cycle-3 frozen scope only.
+
+### Added
+- `tests/test_gate_read.py`: an 11-test contract suite for the reader, stdlib `unittest` only (the repo stays dependency-free). Fixtures are built in a `tempfile.mkdtemp()` and removed at teardown; the tests invoke the shipped reader as a subprocess and assert on its real stdout. Mutation-checked on six surfaces (join matching, rotated-window exclusion, duplicate-count semantics, per-skill tally, validator presence, final status line); known gaps: `--until` boundary inclusivity, same-size-write detection, and unmatched-leaf counts are not asserted.
+- `.github/workflows/tests.yml`: GitHub Actions job running `python -m unittest discover -s tests -v` on Python 3.8 and 3.12 for every push and pull request; `contents: read` permissions only.
+- `.gitignore`: `__pycache__/`, `*.pyc`, `*.pyo`, `.DS_Store` — prevents the bytecode residue that recurred in earlier cycles.
+
+### Fixed
+- README now points at `CONTRIBUTING.md`, in the What-ships table and the License section; the proposal path was previously documented but unlinked.
+- Removed two dead functions from `scripts/gate-read.py` (`count_first_prev_checks`, `read_records_with_lines`) — no call sites, no output change.
 
 ## 0.4.0 — 2026-11-11
 
