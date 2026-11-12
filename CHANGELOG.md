@@ -1,6 +1,7 @@
 # Changelog
 
-[unreleased]: https://github.com/anoscranel/rsi-skills/compare/v0.8.0...HEAD
+[unreleased]: https://github.com/anoscranel/rsi-skills/compare/v0.9.0...HEAD
+[0.8.0…0.9.0]: https://github.com/anoscranel/rsi-skills/compare/v0.8.0...v0.9.0
 [0.7.0…0.8.0]: https://github.com/anoscranel/rsi-skills/compare/v0.7.0...v0.8.0
 [0.6.0…0.7.0]: https://github.com/anoscranel/rsi-skills/compare/v0.6.0...v0.7.0
 [0.5.1…0.6.0]: https://github.com/anoscranel/rsi-skills/compare/v0.5.1...v0.6.0
@@ -8,6 +9,26 @@
 [0.4.0…0.5.0]: https://github.com/anoscranel/rsi-skills/compare/v0.4.0...v0.5.0
 [0.2.0…0.3.0]: https://github.com/anoscranel/rsi-skills/compare/v0.2.0...v0.3.0
 [0.3.0…0.4.0]: https://github.com/anoscranel/rsi-skills/compare/v0.3.0...v0.4.0
+
+## 0.9.0 — Unreleased
+
+A reference observer, and the attribution rule that makes its output honest. The first code in this repo that can produce a joinable leaf record without the vacuous join.
+
+### Added
+- `scripts/skill-observer.py` — reads a session store read-only and emits leaf records using the schema's attribution rule. Prints a join summary and states plainly that the rate is a **lower bound**. Writes nothing except the leaf log.
+- `tests/test_skill_observer.py` — 15 contract tests covering attribution, the later-activation guard, the collision downgrade, the repeated-activation-id guard, the read-only guarantee, and the lower-bound wording.
+- Schema: **Attribution rule** section — the fixed procedure an observer must follow (first tool call after activation; `null` when the leaf issued none; never the activation's own id), the **collision downgrade**, and an explicit statement that the rule is an inference, not a measurement.
+
+### Changed
+- README lists the observer; `tests/README` test count corrected.
+
+### Measured on the reference store (2026-11-12, window 2026-11-01 → now)
+- 111 skill activations across 83 sessions; **86 attributable**, 25 unjoinable.
+- Of those 86, **80** join an outcome record — but **75 of those 80 join records whose `tool` is `unknown`**, i.e. rows written during the recorder's defect window (98,178 such rows at the pre-fix snapshot earlier the same day; the live file continues to grow). Under this spec those joins carry no attribution and do not count.
+- **SPEC-valid joins: 5 of 111 records (4.5%)** — one `read`, one `execute`, two `write`, one `shell`, all written after the recorder fix.
+- **10 call ids were claimed by more than one skill** and were downgraded to `null`; the guard that skips a later *activation* as an attribution was also necessary (without it, two consecutively activating skills swapped ids).
+
+⚠️ **The join rate is not yet measurable, and this release does not claim one.** The observer works; the outcome corpus does not yet contain enough post-fix rows to estimate a rate. Any figure derived from `tool:"unknown"` rows measures the old defect, not the leaf. Re-measure after a clean window of post-fix traffic.
 [0.1.0…0.2.0]: https://github.com/anoscranel/rsi-skills/compare/v0.1.0...v0.2.0
 
 ## 0.8.0 — 2026-11-12

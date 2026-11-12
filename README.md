@@ -14,6 +14,7 @@ A design for letting Agent Skills improve themselves safely: skills log how they
 | `skills/ac-rsi/schema/log-schema.md` | Two record types: a *leaf record* (written by a skill) and an *outcome record* (written by the harness, never by the skill). They join on `sessionID` + `callID`; a leaf record with a null `callID` cannot join. |
 | `docs/SPEC-rsi-skills.md` | The stage ladder, the success gates, the safety rules and the research they rest on (9 arXiv papers). |
 | `scripts/gate-read.py` | A diagnostic join-report of the two logs (per-skill counts, join rate, chain continuity, trust tally). Diagnostic-only — it does not evaluate the §0 gate. |
+| `scripts/skill-observer.py` | Emits leaf records from a session store using the schema's attribution rule. Read-only on the database; writes nothing but the leaf log. Reference producer — the operator runs it or does not. |
 | `docs/PILOT-2026-11.md` | Pilot-window template (dates, skills, recorder, margin — owner-fillable). Not pre-registered until the owner fills and commits it. |
 | `CONTRIBUTING.md` | How to propose a change: issues only, human review, accepted scope. |
 

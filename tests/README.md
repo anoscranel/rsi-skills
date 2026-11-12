@@ -1,6 +1,6 @@
 # tests
 
-Run from the repo root: `python3 -m unittest discover -s tests -v` (16 contract tests, a few seconds).
+Run from the repo root: `python3 -m unittest discover -s tests -v` (34 contract tests, a few seconds).
 Dependency-free: stdlib `unittest` only — no requirements file, no pytest, no network; fixtures are temp-dir-scoped (`tempfile.mkdtemp()`, removed in `tearDown`).
 Tests invoke `scripts/gate-read.py` as a subprocess and assert on its real stdout; nothing is written into the repo.
 

@@ -82,3 +82,40 @@ skills, and nothing in an activation record says which outcome belongs to which.
 
 ⚠️ Activation counts are **not** recall. A skill that should have fired and did not emits no
 event at all, so the miss rate is invisible to every activation log (see `docs/MISS-RATE.md`).
+
+## Attribution rule (observer-written leaf records, v1)
+
+An observer that reads a session store (rather than living inside the harness process) must
+convert an *activation* into a *leaf record*. The rule is fixed here so two observers cannot
+disagree, and so the result cannot be the vacuous join.
+
+Given activation `A` (skill `S`, session `X`, sequence `seq_A`):
+
+1. Find the **first** tool call `T` in session `X` with `seq > seq_A`. An *activation* is not
+   a tool call for this purpose: a later `skill` part must be skipped, or two consecutively
+   activating skills swap attribution. Scan at most the next 40 assistant messages (the rows tool parts live in); if no eligible call
+   appears in that window, treat the activation as unjoinable (step 3).
+2. If `T` exists: write a leaf record `{ts: A.time, skill: S, leaf_routed: null,
+   trigger_text: null, model: A.model, sessionID: X, callID: T.id}`.
+3. If no such `T` exists: write the same record with `callID: null`.
+
+**Never use `A`'s own call id** — that id names the call that *loaded* the skill, and joining
+it reproduces the vacuous join (`SPEC §0` refuses it).
+
+**Collision downgrade.** When several skills activate in one turn, rule 1 can attribute more
+than one skill to the same call. A call id claimed by two skills is evidence for neither, so
+it is written as `callID: null` — an honest miss. Measured 2026-11-12 (earlier same-day probe window, pre-influx): 8 of 100
+distinct ids were shared, so this is not hypothetical.
+
+⚠️ **This rule is an inference, not a measurement.** "The first tool call after activation" is
+a defensible attribution, not proof that the leaf caused that call. A leaf that reasons without
+calling any tool produces `callID: null` (step 3) and therefore counts as a **miss** under
+`SPEC §0` — which is the correct conservative treatment, not a bug.
+
+⚠️ Consequence: observer-written leaf records systematically under-count successful leaves,
+because reasoning-only leaves are indistinguishable from leaves that did nothing. State the
+observed rate as a **lower bound** on fired-leaf success, never as the rate.
+
+**Where the rule comes from:** measured 2026-11-12 against this device's session store —
+22 `skill` activations in 14 days (earlier same-day probe, 2026-10-29 → 2026-11-12; the since-Nov-1 window holds 111), each with its own call id, name, `state.input.id`, `status`
+and `data.model.id`. The store supplies `model`, which an in-process harness writer cannot reach.
