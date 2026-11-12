@@ -1,7 +1,22 @@
+## 0.9.2 — 2026-11-12
+
+Release-metadata fix: the 0.9.0 and 0.9.1 tags shipped with the changelog's 0.9.0 heading still
+marked Unreleased and the README still saying v0.8.0. This release dates the 0.9.0 heading,
+records the 0.9.1 entry, and pins the current-release line.
+
+## 0.9.1 — 2026-11-12
+
+Private vulnerability reporting is now enabled on this repository, so SECURITY.md now points
+at the *Report a vulnerability* flow directly instead of a fallback contact. This section was
+added after the fact: the 0.9.1 tag shipped the SECURITY.md change but its changelog entry and
+the dated 0.9.0 heading were lost to a publish-process error.
+
 # Changelog
 
 [unreleased]: https://github.com/anoscranel/rsi-skills/compare/v0.9.0...HEAD
 [0.8.0…0.9.0]: https://github.com/anoscranel/rsi-skills/compare/v0.8.0...v0.9.0
+[0.9.0…0.9.1]: https://github.com/anoscranel/rsi-skills/compare/v0.9.0...v0.9.1
+[0.9.1…0.9.2]: https://github.com/anoscranel/rsi-skills/compare/v0.9.1...v0.9.2
 [0.7.0…0.8.0]: https://github.com/anoscranel/rsi-skills/compare/v0.7.0...v0.8.0
 [0.6.0…0.7.0]: https://github.com/anoscranel/rsi-skills/compare/v0.6.0...v0.7.0
 [0.5.1…0.6.0]: https://github.com/anoscranel/rsi-skills/compare/v0.5.1...v0.6.0
@@ -10,7 +25,7 @@
 [0.2.0…0.3.0]: https://github.com/anoscranel/rsi-skills/compare/v0.2.0...v0.3.0
 [0.3.0…0.4.0]: https://github.com/anoscranel/rsi-skills/compare/v0.3.0...v0.4.0
 
-## 0.9.0 — Unreleased
+## 0.9.0 — 2026-11-12
 
 A reference observer, and the attribution rule that makes its output honest. The first code in this repo that can produce a joinable leaf record without the vacuous join.
 

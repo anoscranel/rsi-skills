@@ -4,7 +4,7 @@ A design for letting Agent Skills improve themselves safely: skills log how they
 
 **Status: Stage 1, a specification.** This repo ships the shared core skill, the event-log schema and the safety spec. It does not ship anything that writes logs or proposals. No skill logs events yet, so none of the spec's success gates can be measured.
 
-**Current release: v0.8.0.**
+**Current release: v0.9.2.**
 
 ## What ships
 
