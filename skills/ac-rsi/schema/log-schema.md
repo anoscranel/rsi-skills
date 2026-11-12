@@ -2,7 +2,7 @@
 
 Every skill's `00-rsi` leaf appends one **JSON Line** per routing event. Append one line to the central log outside the skill tree (path: `~/.local/share/opencode/rsi/leaf-events.jsonl` — opencode default; set your harness's equivalent). Never write a file inside a skill tree at run time. Append-only. One event per line, UTF-8, no trailing comma.
 
-There are two record types in two files. The leaf writes leaf records to `leaf-events.jsonl`. An outcome recorder run by the harness, not the agent, writes outcome records to `harness-outcomes.jsonl` in the same directory. This repo does not ship that recorder. Join the two exactly on `sessionID` + `callID`. Do not join on time.
+There are two record types in two files. The leaf writes leaf records to `leaf-events.jsonl`. An outcome recorder run by the harness, not the agent, writes outcome records to `harness-outcomes.jsonl` in the same directory. This repo does not ship that recorder. Join the two on `sessionID` + `callID`; do not join on time. A leaf record with a `null` `callID` is unjoinable by definition — count it as a miss, never as a match.
 
 ## Leaf record (written by the leaf)
 
@@ -10,11 +10,11 @@ There are two record types in two files. The leaf writes leaf records to `leaf-e
 |-------|------|---------|
 | `ts` | ISO-8601 string | event time (UTC) |
 | `skill` | string | the skill's `name` (e.g. `ac-subskills-author`) |
-| `leaf_routed` | string \| null | the subskill leaf that fired, or null if only SKILL.md |
-| `trigger_text` | string | the index row text, copied verbatim from SKILL.md by the leaf; never the user's words; the optimizer re-derives it from the skill file and ignores the logged value. |
-| `model` | string | the model that produced the routing |
+| `leaf_routed` | string \| null | **self-reported by the leaf; no harness event names a subskill leaf.** The leaf names the subskill it believes it used, or null if only SKILL.md applied. Never treated as independently recorded. |
+| `trigger_text` | string \| null | the index row text, copied verbatim from SKILL.md by the leaf; never the user's words; the optimizer re-derives it from the skill file and ignores the logged value. Nullable: a writer that cannot read the index row (e.g. a harness plugin) writes `null` rather than guessing. |
+| `model` | string \| null | the model that produced the routing. Nullable: absent from every `session.tool.*` payload, so a harness-plugin writer cannot supply it without a second join; write `null` rather than a guess. |
 | `sessionID` | string | the harness session id |
-| `callID` | string | the harness id of the LAST tool call the routed leaf issued before the event; if none, the id of the call that routed to it; the join key with the outcome record |
+| `callID` | string \| null | **beware the vacuous join.** A writer that copies `callID` from the routing tool call itself gets a record that joins the outcome log *by construction* — a 100% join rate meaning only "the routing call returned". That is not evidence the leaf did work. Nullable: a writer with no independent call id writes `null` (fails the join honestly). The §0 bar additionally requires the joined outcome to be a *different* record from the routing call's own entry. |
 
 A leaf record never contains outcome fields.
 
@@ -55,13 +55,13 @@ Rotation: outcome files may rotate with numeric suffixes (`harness-outcomes.json
 
 Measured with this repo's diagnostic reader on 2026-11-11: the opencode recorder rotates **without** cross-file chaining (the first live record's `prev` does not match the hash of the previous file's last line), so every rotation boundary is a chain break under canonical-history semantics. The reader reports these as boundary breaks, not errors.
 
-## Writer requirements (whichever component writes leaf records — leaf or harness — the harness supplies:)
+## Writer requirements (whichever component writes leaf records):
 
 - `sessionID` — the harness session identifier, verbatim.
-- `callID` — per SPEC §0: the id of the LAST tool call the routed leaf issued before the event; if none, the id of the call that routed to it.
+- `callID` — string or null. The id of a tool call the routed leaf itself issued, or null if the writer holds none. **Never the id of the call that routed to the leaf**: that id joins the routing outcome by construction, and SPEC §0 refuses it.
 - `ts` — UTC, ISO-8601, from a clock the harness provides; never the model's guess.
 
-These are requirements, mechanism-neutral; no route (leaf-side vs harness-side logging) is implied.
+These are requirements; only `callID` may be null, for the reason above. No route (leaf-side vs harness-side logging) is implied.
 
 ## Activation records (producer examples — none canonical)
 

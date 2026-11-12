@@ -6,7 +6,7 @@ Status: **protocol only, not implemented.** Written 2026-11-11 from research cyc
 ## What is already measured (free, from telemetry)
 
 - **Fired-leaf outcome rate** — of the routings that happened, how often the leaf helped.
-  Derivable from `leaf-events.jsonl` joined to `harness-outcomes.jsonl` on sessionID+callID.
+  Derivable from `leaf-events.jsonl` joined to `harness-outcomes.jsonl` on sessionID+callID. A leaf record with a null callID cannot join; SPEC §0 counts it as a miss.
 - **Activation counts per skill** — how often each skill fired. Available from vendor
   telemetry (opencode's `skill` tool event; Claude Code's `claude_code.skill_activated`).
 

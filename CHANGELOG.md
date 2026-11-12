@@ -1,6 +1,7 @@
 # Changelog
 
-[unreleased]: https://github.com/anoscranel/rsi-skills/compare/v0.7.0...HEAD
+[unreleased]: https://github.com/anoscranel/rsi-skills/compare/v0.8.0...HEAD
+[0.7.0…0.8.0]: https://github.com/anoscranel/rsi-skills/compare/v0.7.0...v0.8.0
 [0.6.0…0.7.0]: https://github.com/anoscranel/rsi-skills/compare/v0.6.0...v0.7.0
 [0.5.1…0.6.0]: https://github.com/anoscranel/rsi-skills/compare/v0.5.1...v0.6.0
 [0.5.0…0.5.1]: https://github.com/anoscranel/rsi-skills/compare/v0.5.0...v0.5.1
@@ -8,6 +9,19 @@
 [0.2.0…0.3.0]: https://github.com/anoscranel/rsi-skills/compare/v0.2.0...v0.3.0
 [0.3.0…0.4.0]: https://github.com/anoscranel/rsi-skills/compare/v0.3.0...v0.4.0
 [0.1.0…0.2.0]: https://github.com/anoscranel/rsi-skills/compare/v0.1.0...v0.2.0
+
+## 0.8.0 — 2026-11-12
+
+The leaf record is audited before any writer is built, and four of its fields turn out to be unsatisfiable or dishonest for an event-only writer. No code changes: the reader never validated leaf fields, and no writer shipped.
+
+### Changed
+- **Schema: `leaf_routed` is marked self-reported.** No harness event names a subskill leaf, so a writer can only report what it believes it used. Treating it as independently recorded was false.
+- **Schema: `trigger_text` and `model` are now nullable.** A harness-plugin writer can reach neither the SKILL.md index row nor any model name in a `session.tool.*` payload. Requiring them forced a guess; `null` now records "not available to this writer" honestly.
+- **Schema: `callID` is nullable and documented as the vacuous-join hazard.** A writer that copies the routing call's own id produces a record that joins the outcome log by construction — a 100% join rate meaning only that the routing call returned. Writing `null` fails the join honestly. The Writer requirements section previously *prescribed* the copy; it now forbids it.
+- **Spec §0: the ≥95/100 bar now requires the joined outcome to carry a different `callID` from the routing call, and is computed over ALL leaf events rather than joinable ones.** Without both clauses a writer could report 100% over a shrinking sample by logging `null` for everything unjoinable. A leaf event counts toward the ≥100 only if `skill` and `callID` are both non-null.
+
+### Not built
+- A same-process leaf writer was designed and **rejected before implementation**: the plugin holds only the routing call's id, so such a writer can either copy it (vacuous) or write `null` (honest, but permanently unable to clear the ≥95 bar). An independent writer requires a separate process reading the session store — recorded as the named successor, not built.
 
 ## 0.7.0 — 2026-11-12
 

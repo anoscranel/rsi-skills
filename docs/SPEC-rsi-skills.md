@@ -29,14 +29,22 @@ skills, against the pre-proposal fired-leaf outcome rate measured from the same 
   recompute every later link. On a single-user mobile device no in-process writer can
   hold a separate uid (`/data` is `nosuid`, there is no TPM, `chattr +a` is refused); the
   separate-uid options are a second Android app, a hardware-held signing key, or a remote
-  writer, and none is required for the pilot to open. Zero breaks in the chain. The
-  improvement margin is fixed in a dated file
+  writer, and none is required for the pilot to open. **The joined outcome must carry a
+  different `callID` from the tool call that routed to the leaf.** A leaf record whose `callID`
+  equals the routing call's own id joins by construction and measures only that the routing call
+  returned; that is a vacuous join and does not count toward the ≥95. A writer that cannot name a
+  tool call the leaf itself issued writes `null` — which also does not count. In practice, reject
+  any joined pair whose outcome has `tool` of `skill` or `unknown`. **The ≥95 is computed over ALL
+  leaf events in the window, not over joinable ones:** a record with a `null` `callID`, or with no
+  matching outcome, counts in the denominator and fails the numerator — otherwise a writer logging
+  `null` for its unjoinable records reports 100% over a shrinking sample. **A leaf event counts
+  toward the ≥100 only if `skill` and `callID` are both non-null.** Zero breaks in the chain.
+  The improvement margin is fixed in a dated file
   before the window opens. The window opens only when a dated pilot card (start date, pilot
   skills, recorder identity + first chain hash, margin) is committed; see docs/PILOT-2026-11.md.
 - **Replicated improvement:** ≥1 typed edit proposal passes the human+validator gate AND
   measurably improves the fired-leaf outcome rate (§6's honest metric) by that pre-registered
-  margin, replicated on BOTH pilot skills — not a single lucky prune on one. (the leaf
-  stamps the last tool call it issued before the event; see schema)
+  margin, replicated on BOTH pilot skills — not a single lucky prune on one.
 - **No safety regression:** zero poison-tripwire fires, zero unauthorized writes attributed
   to the RSI leaf or core across the window. ⚠️ No write monitor exists yet, so this bar
   cannot be measured until one is built. Until the two files sit outside the agent's write
@@ -202,7 +210,8 @@ The RSI leaf's log is the instrument for the measurement problem — but it can 
 quantities, and conflating them is the trap this section must avoid.
 
 - **Per-event:** which leaf fired, the trigger text, the outcome, the validator verdict,
-  the model. Schema in `ac-rsi/schema/log-schema.md`. **The outcome fields are written by
+  the model — each where the writer can supply it; `trigger_text` and `model` are null for an
+  event-only writer. Schema in `ac-rsi/schema/log-schema.md`. **The outcome fields are written by
   the harness/validator, outside the skill's own append path (§4 rule 3)** — otherwise the
   log is both metric and training signal, the exact Roesner & Kohno poisoning trap.
 - **What the log CAN measure (the honest metric): fired-leaf outcome rate** — of the

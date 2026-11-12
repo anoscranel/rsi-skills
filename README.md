@@ -4,14 +4,14 @@ A design for letting Agent Skills improve themselves safely: skills log how they
 
 **Status: Stage 1, a specification.** This repo ships the shared core skill, the event-log schema and the safety spec. It does not ship anything that writes logs or proposals. No skill logs events yet, so none of the spec's success gates can be measured.
 
-**Current release: v0.7.0.**
+**Current release: v0.8.0.**
 
 ## What ships
 
 | Path | What it is |
 |---|---|
 | `skills/ac-rsi/` | The shared core skill. It owns the event-log schema. It writes nothing. |
-| `skills/ac-rsi/schema/log-schema.md` | Two record types: a *leaf record* (written by a skill) and an *outcome record* (written by the harness, never by the skill). They join on `sessionID` + `callID`. |
+| `skills/ac-rsi/schema/log-schema.md` | Two record types: a *leaf record* (written by a skill) and an *outcome record* (written by the harness, never by the skill). They join on `sessionID` + `callID`; a leaf record with a null `callID` cannot join. |
 | `docs/SPEC-rsi-skills.md` | The stage ladder, the success gates, the safety rules and the research they rest on (9 arXiv papers). |
 | `scripts/gate-read.py` | A diagnostic join-report of the two logs (per-skill counts, join rate, chain continuity, trust tally). Diagnostic-only — it does not evaluate the §0 gate. |
 | `docs/PILOT-2026-11.md` | Pilot-window template (dates, skills, recorder, margin — owner-fillable). Not pre-registered until the owner fills and commits it. |
