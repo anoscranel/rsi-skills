@@ -1,6 +1,7 @@
 # Changelog
 
-[unreleased]: https://github.com/anoscranel/rsi-skills/compare/v0.9.3...HEAD
+[unreleased]: https://github.com/anoscranel/rsi-skills/compare/v0.9.4...HEAD
+[0.9.3…0.9.4]: https://github.com/anoscranel/rsi-skills/compare/v0.9.3...v0.9.4
 [0.9.2…0.9.3]: https://github.com/anoscranel/rsi-skills/compare/v0.9.2...v0.9.3
 [0.9.1…0.9.2]: https://github.com/anoscranel/rsi-skills/compare/v0.9.1...v0.9.2
 [0.9.0…0.9.1]: https://github.com/anoscranel/rsi-skills/compare/v0.9.0...v0.9.1
@@ -13,6 +14,13 @@
 [0.3.0…0.4.0]: https://github.com/anoscranel/rsi-skills/compare/v0.3.0...v0.4.0
 [0.2.0…0.3.0]: https://github.com/anoscranel/rsi-skills/compare/v0.2.0...v0.3.0
 [0.1.0…0.2.0]: https://github.com/anoscranel/rsi-skills/compare/v0.1.0...v0.2.0
+
+## 0.9.4 — 2026-11-19
+
+Measurement-methodology note and two wording fixes. Joining leaf records to outcomes must
+include all rotated outcome files, not just the live log (a live-file-only join understates
+the rate); schema nullability prose now matches the nullable `ts`; the README gate-read row
+reads as a sentence. No script behavior change.
 
 ## 0.9.3 — 2026-11-19
 

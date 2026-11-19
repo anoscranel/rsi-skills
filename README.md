@@ -4,7 +4,7 @@ A design for letting Agent Skills improve themselves safely: skills log how they
 
 **Status: Stage 1, a specification.** This repo ships the shared core skill, the event-log schema and the safety spec. It ships one reference leaf-log writer (`scripts/skill-observer.py`, operator-run); no proposal writer or outcome recorder ships. No skill logs events yet, so none of the spec's success gates can be measured.
 
-**Current release: v0.9.3.**
+**Current release: v0.9.4.**
 
 ## What ships
 
@@ -13,7 +13,7 @@ A design for letting Agent Skills improve themselves safely: skills log how they
 | `skills/ac-rsi/` | The shared core skill. It owns the event-log schema. It writes nothing. |
 | `skills/ac-rsi/schema/log-schema.md` | Two record types: a *leaf record* (written by a skill) and an *outcome record* (written by the harness, never by the skill). They join on `sessionID` + `callID`; a leaf record with a null `callID` cannot join. |
 | `docs/SPEC-rsi-skills.md` | The stage ladder, the success gates, the safety rules and the research they rest on (9 arXiv papers). |
-| `scripts/gate-read.py` | A diagnostic join-report of the two logs (per-skill counts, join rate, chain continuity, trust tally). Diagnostic-only — it does not evaluate the §0 gate; activation counts (`--skill-events`/`--adapter`) |
+| `scripts/gate-read.py` | A diagnostic join-report of the two logs (per-skill counts, join rate, chain continuity, trust tally). Diagnostic-only — it does not evaluate the §0 gate. It also reports activation counts (`--skill-events`/`--adapter`). |
 | `scripts/skill-observer.py` | Emits leaf records from a session store using the schema's attribution rule. Read-only on the database; writes nothing but the leaf log. Reference producer — the operator runs it or does not. |
 | `docs/PILOT-2026-11.md` | Pilot-window template (dates, skills, recorder, margin — owner-fillable). Not pre-registered until the owner fills and commits it. |
 | `CONTRIBUTING.md` | How to propose a change: issues only, human review, accepted scope. |

@@ -61,7 +61,7 @@ Measured with this repo's diagnostic reader on 2026-11-11: the opencode recorder
 - `callID` — string or null. The id of a tool call the routed leaf itself issued, or null if the writer holds none. **Never the id of the call that routed to the leaf**: that id joins the routing outcome by construction, and SPEC §0 refuses it.
 - `ts` — UTC, ISO-8601, from a clock the harness provides; never the model's guess.
 
-These are requirements; only `callID` may be null, for the reason above. No route (leaf-side vs harness-side logging) is implied.
+These are requirements; of these harness-supplied fields, `callID` may be null (no eligible later call) and `ts` may be null (the source row lacks a created time). No route (leaf-side vs harness-side logging) is implied.
 
 ## Activation records (producer examples — none canonical)
 
