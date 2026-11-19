@@ -2,9 +2,9 @@
 
 A design for letting Agent Skills improve themselves safely: skills log how they are used, an offline pass proposes edits, and a human approves every change. Nothing ever rewrites itself at run time.
 
-**Status: Stage 1, a specification.** This repo ships the shared core skill, the event-log schema and the safety spec. It does not ship anything that writes logs or proposals. No skill logs events yet, so none of the spec's success gates can be measured.
+**Status: Stage 1, a specification.** This repo ships the shared core skill, the event-log schema and the safety spec. It ships one reference leaf-log writer (`scripts/skill-observer.py`, operator-run); no proposal writer or outcome recorder ships. No skill logs events yet, so none of the spec's success gates can be measured.
 
-**Current release: v0.9.2.**
+**Current release: v0.9.3.**
 
 ## What ships
 
@@ -13,7 +13,7 @@ A design for letting Agent Skills improve themselves safely: skills log how they
 | `skills/ac-rsi/` | The shared core skill. It owns the event-log schema. It writes nothing. |
 | `skills/ac-rsi/schema/log-schema.md` | Two record types: a *leaf record* (written by a skill) and an *outcome record* (written by the harness, never by the skill). They join on `sessionID` + `callID`; a leaf record with a null `callID` cannot join. |
 | `docs/SPEC-rsi-skills.md` | The stage ladder, the success gates, the safety rules and the research they rest on (9 arXiv papers). |
-| `scripts/gate-read.py` | A diagnostic join-report of the two logs (per-skill counts, join rate, chain continuity, trust tally). Diagnostic-only — it does not evaluate the §0 gate. |
+| `scripts/gate-read.py` | A diagnostic join-report of the two logs (per-skill counts, join rate, chain continuity, trust tally). Diagnostic-only — it does not evaluate the §0 gate; activation counts (`--skill-events`/`--adapter`) |
 | `scripts/skill-observer.py` | Emits leaf records from a session store using the schema's attribution rule. Read-only on the database; writes nothing but the leaf log. Reference producer — the operator runs it or does not. |
 | `docs/PILOT-2026-11.md` | Pilot-window template (dates, skills, recorder, margin — owner-fillable). Not pre-registered until the owner fills and commits it. |
 | `CONTRIBUTING.md` | How to propose a change: issues only, human review, accepted scope. |
@@ -55,7 +55,7 @@ Today these rules are written, not enforced. Only a lint checks the leaf's stati
 ## Install
 
 1. Copy `skills/ac-rsi/` into your harness's skills directory (opencode: `~/.agents/skills/ac-rsi/` or the project's `.opencode/skills/ac-rsi/`; Claude Code: `~/.claude/skills/ac-rsi/`).
-2. To log events, add a `00-rsi` leaf to a skill AND enable RSI logging in your harness (default off — nothing logs until you enable it).
+2. To log events, add a `00-rsi` leaf to a skill AND run a leaf writer (e.g. `scripts/skill-observer.py`); no harness switch exists today — nothing logs until a writer runs.
 3. Add an outcome recorder that your harness runs. This repo does not provide one.
 
 ## Diagnostics

@@ -467,6 +467,62 @@ class TestGateReadContract(GateReadCase):
         self.assert_in("Skill activations (0 record(s)", result.stdout)
         self.assertNotIn("Traceback", result.stdout)
 
+    # 20 — G2b: duplicate semantics = count of keys appearing >1, over total
+    # keyed records. Three copies of ONE key is 1 duplicated key, not 2 or 3.
+    def test_duplicate_count_variants(self):
+        nol = self.path("no-leaf.jsonl")
+        one_key = self.write_jsonl("dup-one.jsonl", [
+            {"sessionID": "s1", "callID": "c1"},
+            {"sessionID": "s1", "callID": "c1"},
+            {"sessionID": "s1", "callID": "c1"},
+            {"sessionID": "s1", "callID": "c2"},
+        ])
+        out = self.run_reader("--leaf", nol, "--outcome", one_key).stdout
+        self.assert_in("duplicate keys: 1 of 4 outcome keys", out)
+        two_keys = self.write_jsonl("dup-two.jsonl", [
+            {"sessionID": "s1", "callID": "c1"},
+            {"sessionID": "s1", "callID": "c1"},
+            {"sessionID": "s2", "callID": "c2"},
+            {"sessionID": "s2", "callID": "c2"},
+        ])
+        out = self.run_reader("--leaf", nol, "--outcome", two_keys).stdout
+        self.assert_in("duplicate keys: 2 of 4 outcome keys", out)
+        no_dup = self.write_jsonl("dup-none.jsonl", [
+            {"sessionID": "s1", "callID": "c1"},
+            {"sessionID": "s2", "callID": "c2"},
+        ])
+        out = self.run_reader("--leaf", nol, "--outcome", no_dup).stdout
+        self.assert_in("duplicate keys: 0 of 2 outcome keys", out)
+
+    # 21 — G3b: with a MULTI-line rotated file the boundary hash is the LAST
+    # line's, never the first's. Intact via last line; wrong end = break.
+    def test_boundary_uses_last_line_of_multiline_rotated(self):
+        rotated = self.write_jsonl("outcome.jsonl.1", [
+            {"sessionID": "s0", "callID": "c0"},
+            {"sessionID": "s0", "callID": "c1"},
+            {"sessionID": "s0", "callID": "c2"},
+        ], chain=True)
+        with open(rotated, "r", encoding="utf-8") as handle:
+            rotated_lines = [l for l in handle.read().splitlines() if l.strip()]
+        self.assertGreater(len(rotated_lines), 1)
+        nol = self.path("no-leaf.jsonl")
+        live_ok = self.write_jsonl("live-ok.jsonl", [
+            {"sessionID": "s1", "callID": "c9",
+             "prev": sha256_text(rotated_lines[-1])},
+        ])
+        out = self.run_reader("--leaf", nol, "--outcome", live_ok,
+                              "--outcome2", rotated).stdout
+        self.assert_in("Rotation boundary: cross-file chain INTACT", out)
+        self.assertNotIn("boundary break", out)
+        live_bad = self.write_jsonl("live-bad.jsonl", [
+            {"sessionID": "s1", "callID": "c9",
+             "prev": sha256_text(rotated_lines[0])},
+        ])
+        out = self.run_reader("--leaf", nol, "--outcome", live_bad,
+                              "--outcome2", rotated).stdout
+        self.assert_in("Rotation boundary: boundary break", out)
+        self.assertNotIn("INTACT", out)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

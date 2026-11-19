@@ -8,7 +8,7 @@ There are two record types in two files. The leaf writes leaf records to `leaf-e
 
 | field | type | meaning |
 |-------|------|---------|
-| `ts` | ISO-8601 string | event time (UTC) |
+| `ts` | ISO-8601 string \| null | event time (UTC); null only when the source row lacks a created time |
 | `skill` | string | the skill's `name` (e.g. `ac-subskills-author`) |
 | `leaf_routed` | string \| null | **self-reported by the leaf; no harness event names a subskill leaf.** The leaf names the subskill it believes it used, or null if only SKILL.md applied. Never treated as independently recorded. |
 | `trigger_text` | string \| null | the index row text, copied verbatim from SKILL.md by the leaf; never the user's words; the optimizer re-derives it from the skill file and ignores the logged value. Nullable: a writer that cannot read the index row (e.g. a harness plugin) writes `null` rather than guessing. |
@@ -114,7 +114,7 @@ calling any tool produces `callID: null` (step 3) and therefore counts as a **mi
 
 ⚠️ Consequence: observer-written leaf records systematically under-count successful leaves,
 because reasoning-only leaves are indistinguishable from leaves that did nothing. State the
-observed rate as a **lower bound** on fired-leaf success, never as the rate.
+observed rate as an **attribution rate** — a lower bound on tool-issuing leaves, never as the fired-leaf outcome rate (no outcomes are read; attributed calls may have errored).
 
 **Where the rule comes from:** measured 2026-11-12 against this device's session store —
 22 `skill` activations in 14 days (earlier same-day probe, 2026-10-29 → 2026-11-12; the since-Nov-1 window holds 111), each with its own call id, name, `state.input.id`, `status`

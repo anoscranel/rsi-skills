@@ -5,7 +5,7 @@ DIAGNOSTIC-ONLY — this script DOES NOT evaluate the SPEC section-0 gate.
 It reads two JSONL files and reports join integrity and denominators:
 
   - per-skill leaf event counts
-  - join rate WITH denominator (matched leaf events / total leaf events)
+  - join rate WITH denominator (matched / joinable leaf events; null-callID excluded — not §0's all-events denominator)
   - unmatched counts on each side
   - duplicate (sessionID, callID) keys counted on BOTH sides
   - chain-continuity classified over the canonical history

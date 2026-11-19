@@ -1,3 +1,58 @@
+# Changelog
+
+[unreleased]: https://github.com/anoscranel/rsi-skills/compare/v0.9.3...HEAD
+[0.9.2…0.9.3]: https://github.com/anoscranel/rsi-skills/compare/v0.9.2...v0.9.3
+[0.9.1…0.9.2]: https://github.com/anoscranel/rsi-skills/compare/v0.9.1...v0.9.2
+[0.9.0…0.9.1]: https://github.com/anoscranel/rsi-skills/compare/v0.9.0...v0.9.1
+[0.8.0…0.9.0]: https://github.com/anoscranel/rsi-skills/compare/v0.8.0...v0.9.0
+[0.7.0…0.8.0]: https://github.com/anoscranel/rsi-skills/compare/v0.7.0...v0.8.0
+[0.6.0…0.7.0]: https://github.com/anoscranel/rsi-skills/compare/v0.6.0...v0.7.0
+[0.5.1…0.6.0]: https://github.com/anoscranel/rsi-skills/compare/v0.5.1...v0.6.0
+[0.5.0…0.5.1]: https://github.com/anoscranel/rsi-skills/compare/v0.5.0...v0.5.1
+[0.4.0…0.5.0]: https://github.com/anoscranel/rsi-skills/compare/v0.4.0...v0.5.0
+[0.3.0…0.4.0]: https://github.com/anoscranel/rsi-skills/compare/v0.3.0...v0.4.0
+[0.2.0…0.3.0]: https://github.com/anoscranel/rsi-skills/compare/v0.2.0...v0.3.0
+[0.1.0…0.2.0]: https://github.com/anoscranel/rsi-skills/compare/v0.1.0...v0.2.0
+
+## 0.9.3 — 2026-11-19
+
+Review-repair release: the 11 defects of the 2026-11 whole-project review, closed as wording,
+documentation and test coverage only — no behavior change in either script.
+
+### Fixed
+- README writer claim (D1): the repo ships one reference leaf-log writer
+  (`scripts/skill-observer.py`, operator-run); no proposal writer or outcome recorder ships.
+- README opt-in step (D11): logging requires running a leaf writer; no harness switch exists.
+- README reader row + changelog record (D2): `gate-read.py`'s activation counts
+  (`--skill-events`/`--adapter`) are now listed in the What-ships table and recorded here;
+  the feature had shipped without a changelog entry.
+- `gate-read.py` docstring (D4): the join rate's denominator is matched/joinable leaf events,
+  null-callID excluded — not §0's all-events denominator.
+- Schema `ts` nullability (D5): leaf `ts` is nullable — null only when the source row lacks a
+  created time — matching what the observer writes.
+- Attribution-rate label (D10, schema + observer NOTE): the reported rate is an attribution
+  rate — a lower bound on tool-issuing leaves, never the fired-leaf outcome rate; no outcomes
+  are read and attributed calls may have errored. The wording test's assertion now pins the
+  new phrase.
+- PILOT gate restatement + citation (D3, D7): the fixed-denominators section is marked a
+  summary pointing at the binding SPEC §0 text (docs/SPEC-rsi-skills.md:23-41); the ≥95 line
+  now states the all-events denominator, the different-callID requirement and the
+  `skill`/`unknown` tool exclusion; the pilot-card citation corrected to :42-44.
+- CONTRIBUTING scope (D8): accepted scope now includes `scripts/skill-observer.py` and
+  `tests/`.
+- Docs index (D9): docs/README.md lists PILOT-2026-11.md and MISS-RATE.md.
+- Changelog cosmetics (D6): H1 moved to line 1, [unreleased] compare target set to
+  v0.9.3...HEAD, the orphaned [0.1.0…0.2.0] link consolidated into the link block, and the
+  [0.9.2…0.9.3] compare link added.
+
+### Added
+- Five mutation-binding tests (suite 34 → 39): the observer's 40-row window off-by-one (the
+  40th scanned row is inside the window), the rate denominator (a lone unjoinable activation
+  prints `0.0%` over all activations), first-not-last attribution, duplicate-count variants
+  (1 of 4, 2 of 4, 0 of 2), and the multi-line rotation boundary hashed on the rotated file's
+  LAST line (with the wrong-end break variant). Each was mutation-verified: reintroducing the
+  corresponding defect makes the suite fail.
+
 ## 0.9.2 — 2026-11-12
 
 Release-metadata fix: the 0.9.0 and 0.9.1 tags shipped with the changelog's 0.9.0 heading still
@@ -11,19 +66,6 @@ at the *Report a vulnerability* flow directly instead of a fallback contact. Thi
 added after the fact: the 0.9.1 tag shipped the SECURITY.md change but its changelog entry and
 the dated 0.9.0 heading were lost to a publish-process error.
 
-# Changelog
-
-[unreleased]: https://github.com/anoscranel/rsi-skills/compare/v0.9.0...HEAD
-[0.8.0…0.9.0]: https://github.com/anoscranel/rsi-skills/compare/v0.8.0...v0.9.0
-[0.9.0…0.9.1]: https://github.com/anoscranel/rsi-skills/compare/v0.9.0...v0.9.1
-[0.9.1…0.9.2]: https://github.com/anoscranel/rsi-skills/compare/v0.9.1...v0.9.2
-[0.7.0…0.8.0]: https://github.com/anoscranel/rsi-skills/compare/v0.7.0...v0.8.0
-[0.6.0…0.7.0]: https://github.com/anoscranel/rsi-skills/compare/v0.6.0...v0.7.0
-[0.5.1…0.6.0]: https://github.com/anoscranel/rsi-skills/compare/v0.5.1...v0.6.0
-[0.5.0…0.5.1]: https://github.com/anoscranel/rsi-skills/compare/v0.5.0...v0.5.1
-[0.4.0…0.5.0]: https://github.com/anoscranel/rsi-skills/compare/v0.4.0...v0.5.0
-[0.2.0…0.3.0]: https://github.com/anoscranel/rsi-skills/compare/v0.2.0...v0.3.0
-[0.3.0…0.4.0]: https://github.com/anoscranel/rsi-skills/compare/v0.3.0...v0.4.0
 
 ## 0.9.0 — 2026-11-12
 
@@ -44,7 +86,6 @@ A reference observer, and the attribution rule that makes its output honest. The
 - **10 call ids were claimed by more than one skill** and were downgraded to `null`; the guard that skips a later *activation* as an attribution was also necessary (without it, two consecutively activating skills swapped ids).
 
 ⚠️ **The join rate is not yet measurable, and this release does not claim one.** The observer works; the outcome corpus does not yet contain enough post-fix rows to estimate a rate. Any figure derived from `tool:"unknown"` rows measures the old defect, not the leaf. Re-measure after a clean window of post-fix traffic.
-[0.1.0…0.2.0]: https://github.com/anoscranel/rsi-skills/compare/v0.1.0...v0.2.0
 
 ## 0.8.0 — 2026-11-12
 

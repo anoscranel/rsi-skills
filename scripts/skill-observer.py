@@ -255,8 +255,7 @@ def main(argv=None):
             file=sys.stderr,
         )
     print(
-        "NOTE: this rate is a LOWER BOUND on fired-leaf success, not the rate itself "
-        "(reasoning-only leaves are indistinguishable from idle ones).",
+        "NOTE: attribution rate, not outcome rate — a lower bound on leaves that issued tool calls, not on fired-leaf success (no outcomes are read; attributed calls may have errored).",
         file=sys.stderr,
     )
     print(

@@ -169,7 +169,7 @@ class ObserverContract(unittest.TestCase):
             message("S1", 2, 1700000001000, [tool_part("call-B", "shell")]),
         ])
         result = self.run_observer("--since", "2023-11-01")
-        self.assertIn("LOWER BOUND", result.stderr)
+        self.assertIn("lower bound on leaves that issued tool calls", result.stderr)
         self.assertIn("GATE NOT EVALUATED", result.stderr)
 
     # 7 — missing database is an error, not a crash or a false success
@@ -258,6 +258,39 @@ class ObserverContract(unittest.TestCase):
         records = self.run_and_collect()
         self.assertEqual(len(records), 1)
         self.assertIsNone(records[0]["callID"])
+
+    # 16 — O8: window off-by-one. The 40th scanned row (seq 41 after an
+    # activation at seq 1) is INSIDE the window; LIMIT 40 must include it.
+    def test_window_includes_40th_scanned_row(self):
+        rows = [message("S1", 1, 1700000000000, [tool_part("call-A", "skill", "ac-alpha")])]
+        for i in range(2, 41):  # seq 2..40: 39 empty assistant rows
+            rows.append(message("S1", i, 1700000000000 + i * 1000, []))
+        rows.append(message("S1", 41, 1700000041000, [tool_part("call-Z", "write")]))
+        self.insert(rows)
+        records = self.run_and_collect()
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0]["callID"], "call-Z")
+
+    # 17 — O10: the rate's denominator is ALL activations, not the joined
+    # ones. A lone unjoinable activation must print 0.0%, never n/a or 100%.
+    def test_rate_denominator_is_all_activations(self):
+        self.insert([
+            message("S1", 1, 1700000000000, [tool_part("call-A", "skill", "ac-alpha")]),
+        ])
+        result = self.run_observer("--since", "2023-11-01")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("unjoinable (callID null): 1 | 0.0%", result.stderr)
+
+    # 18 — O11: attribution takes the FIRST eligible call, not the last.
+    def test_attributes_to_first_not_last(self):
+        self.insert([
+            message("S1", 1, 1700000000000, [tool_part("call-A", "skill", "ac-alpha")]),
+            message("S1", 2, 1700000001000, [tool_part("call-B", "shell")]),
+            message("S1", 3, 1700000002000, [tool_part("call-C", "read")]),
+        ])
+        records = self.run_and_collect()
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0]["callID"], "call-B")
 
     def run_and_collect(self):
         result = self.run_observer("--since", "2023-11-01")
