@@ -2,9 +2,9 @@
 
 A design for letting Agent Skills improve themselves safely: skills log how they are used, an offline pass proposes edits, and a human approves every change. Nothing ever rewrites itself at run time.
 
-**Status: Stage 1, a specification.** This repo ships the shared core skill, the event-log schema and the safety spec. It ships one reference leaf-log writer (`scripts/skill-observer.py`, operator-run); no proposal writer or outcome recorder ships. No skill logs events yet, so none of the spec's success gates can be measured.
+**Status: Stage 1 pilot — registered and open.** This repo ships the shared core skill, the event-log schema, the safety spec, one reference leaf-log writer (`scripts/skill-observer.py`, operator-run), and the miss-rate scoring half (`scripts/miss-rate.py`). No proposal writer or outcome recorder ships — your harness must run the recorder, and the log's independence is caveated (see SPEC §0), so the pilot measures join-validity and attribution coverage, not certified tamper-evidence.
 
-**Current release: v0.9.4.**
+**Current release: v0.10.0.**
 
 ## What ships
 
@@ -15,14 +15,16 @@ A design for letting Agent Skills improve themselves safely: skills log how they
 | `docs/SPEC-rsi-skills.md` | The stage ladder, the success gates, the safety rules and the research they rest on (9 arXiv papers). |
 | `scripts/gate-read.py` | A diagnostic join-report of the two logs (per-skill counts, join rate, chain continuity, trust tally). Diagnostic-only — it does not evaluate the §0 gate. It also reports activation counts (`--skill-events`/`--adapter`). |
 | `scripts/skill-observer.py` | Emits leaf records from a session store using the schema's attribution rule. Read-only on the database; writes nothing but the leaf log. Reference producer — the operator runs it or does not. |
-| `docs/PILOT-2026-11.md` | Pilot-window template (dates, skills, recorder, margin — owner-fillable). Not pre-registered until the owner fills and commits it. |
+| `docs/PILOT-2026-11.md` | The registered pilot window (2026-11-19 → 2026-12-19): pilot skills, recorder identity, first chain hash, pre-registered improvement margin, and what the window can and cannot measure. |
+| `scripts/miss-rate.py` | Scores the miss-rate protocol (steps 3–4): hit / miss / false-fire / unrun per labeled task, each as a fraction of N, with the label set pinned by sha256 so any relabel is detectable. Diagnostic — it does not certify ground truth. |
+| `docs/miss-rate-seed.jsonl` | 16 desk-proposed expected-skill labels from real prompts, pending owner confirmation. Every label is `desk-proposed`; none is certified ground truth. |
 | `CONTRIBUTING.md` | How to propose a change: issues only, human review, accepted scope. |
 
 ## What does not ship
 
 - **An outcome recorder.** Your harness must run it, not the agent, so a skill can never grade itself. Without one, the spec's gates cannot be measured.
 - **The Stage 2 optimizer.** It is not built.
-- **A skill that logs events.** One reference `00-rsi` leaf exists in [agent-skills-subskills](https://github.com/anoscranel/agent-skills-subskills/blob/main/skills/ac-subskills-author/subskills/00-rsi.md). It defines the logging step, but nothing in either repo has run it yet.
+- **An autonomous per-skill logger.** The operator-run `scripts/skill-observer.py` is the reference leaf producer; no harness switch makes a skill log on its own. The per-skill `00-rsi` leaf in [agent-skills-subskills](https://github.com/anoscranel/agent-skills-subskills/blob/main/skills/ac-subskills-author/subskills/00-rsi.md) defines the logging step but still needs a writer to run.
 
 ## The design
 
@@ -48,7 +50,7 @@ Today these rules are written, not enforced. Only a lint checks the leaf's stati
 | Stage | What happens | Status |
 |---|---|---|
 | 0 | The spec | Done |
-| 1 | Pilot skills log events; a harness recorder logs outcomes | Approved, not running |
+| 1 | Pilot skills log events; a harness recorder logs outcomes | Registered, window open (2026-11-19 → 2026-12-19) |
 | 2 | Offline optimizer proposes edits; a human reviews each one | Not built; gated on Stage 1 data |
 | 3 | Every new skill carries a `00-rsi` leaf | Only if Stage 2 succeeds |
 

@@ -20,7 +20,8 @@ highest automation level that survives an adversarial audit (see References).
 **What "succeeds" means (condition made testable; ⚠️ the thresholds below are the pack owner's choices, no published basis — revisit after the pilot):** the RSI
 capability succeeds when ALL of these hold across a ≥30-day measured window on the pilot
 skills, against the pre-proposal fired-leaf outcome rate measured from the same log:
-- **Trustworthy log:** ≥100 leaf events per pilot skill. Of those, ≥95 in every 100 have
+- **Trustworthy log:** ≥100 leaf events per pilot skill. Of the attributed leaf events (those
+  with a non-null `callID`), ≥95 in every 100 have
   exactly one harness outcome record with the same sessionID and callID, written by a
   recorder that satisfies the independence triad: (i) the verifier is not the writing
   process, (ii) the chain head is committed somewhere that writing process cannot reach, and
@@ -34,10 +35,26 @@ skills, against the pre-proposal fired-leaf outcome rate measured from the same 
   equals the routing call's own id joins by construction and measures only that the routing call
   returned; that is a vacuous join and does not count toward the ≥95. A writer that cannot name a
   tool call the leaf itself issued writes `null` — which also does not count. In practice, reject
-  any joined pair whose outcome has `tool` of `skill` or `unknown`. **The ≥95 is computed over ALL
-  leaf events in the window, not over joinable ones:** a record with a `null` `callID`, or with no
-  matching outcome, counts in the denominator and fails the numerator — otherwise a writer logging
-  `null` for its unjoinable records reports 100% over a shrinking sample. **A leaf event counts
+  any joined pair whose outcome has `tool` of `skill` or `unknown`. **The ≥95 join-validity rate is
+  computed over ATTRIBUTED leaf events (non-null `callID`), not over all activations:** of the events
+  the observer attributed to a tool call, ≥95 in every 100 must join to exactly one qualifying
+  outcome. **Attribution coverage** (attributed ÷ all leaf events) is reported alongside as a
+  non-gating diagnostic: a reasoning-only leaf legitimately issues no tool call and is
+  unattributable, so coverage measures that skill property, not instrument failure. The absolute-count
+  backstop is the ≥100-attributed count bar below — a writer that logs `null` for its unjoinable records
+  produces zero joinable events and fails ≥100 regardless of its join-validity rate. ⚠️ Residual: a
+  writer could inflate join-validity by attributing only easy calls and null-ing hard ones; its low
+  attribution coverage is visible in the reported diagnostic and it must still produce ≥100 real
+  joins. **The ≥100 count bar does not detect selective nulling** (100 easy joins + N−100 nulls
+  passes every rate bar), so the pilot card states an expected attribution coverage per
+  pilot skill (reasoning-only ≈ low, tool-issuing ≈ high, with a one-line justification). That
+  expectation was **added 2026-11-20 by correction, after the window opened**: skill-1's value is
+  anchored to pre-window calibration, skill-2's is unanchored. At window close, observed coverage more than 10 percentage points below the
+  stated expectation is a **STOP-and-report** condition.
+  This bar measures instrument join-quality, not routing recall (docs/MISS-RATE.md).
+  *(Amended 2026-11-19 by owner delegation: was "over ALL leaf events" — that denominator made the
+  bar unachievable for reasoning-only skills even with a perfect instrument; see DECISIONS, Decision 2.)*
+  **A leaf event counts
   toward the ≥100 only if `skill` and `callID` are both non-null.** Zero breaks in the chain.
   The improvement margin is fixed in a dated file
   before the window opens. The window opens only when a dated pilot card (start date, pilot
@@ -50,8 +67,12 @@ skills, against the pre-proposal fired-leaf outcome rate measured from the same 
   cannot be measured until one is built. Until the two files sit outside the agent's write
   reach (rule 1), a matching outcome record cannot be treated as independent.
 
-**Status today:** no pilot skill logs leaf events yet, and no recorder ships with this
-repo, so none of these gates can be checked yet.
+**Status today (2026-11-19):** the Stage-1 pilot window is **open** (docs/PILOT-2026-11.md).
+The observer (`scripts/skill-observer.py`) produces leaf records and the harness recorder is
+live, so the trustworthy-log bar is measurable; the pre-pilot calibration gave 56.9%
+SPEC-valid over all leaf events (97.7% join-validity over attributed). The outcome recorder
+itself does not ship in this repo (it is a harness plugin). The independence / safety bars
+remain caveated until the logs sit outside the agent's write reach.
 
 **Failure handling:** if Stage 2 does not meet these bars by the window's end, the result
 is STOP-and-report (RSI stays a pilot or is retired) — NOT retry-forever until a lucky
@@ -225,7 +246,8 @@ quantities, and conflating them is the trap this section must avoid.
   (or no skill), comparing outcomes — an offline A/B, never a live self-experiment. The
   bandit/GEPA optimizer tunes trigger/description WORDING against this offline signal, not
   against the live log alone. Held-out re-runs are the poison tripwire (§4 rule 3).
-- Stage 1 has no data for this metric: leaf events are not yet logged.
+- Stage 1 pilot is open (docs/PILOT-2026-11.md); leaf records are produced by
+  `scripts/skill-observer.py` over the window.
 - **Evaluator independence:** outcome = independently-recorded signal (exit code,
   validator verdict, harness follow-up), never the skill's self-rating (§4 rules 2–3).
 - **Aggregation is a liability, stated honestly:** the shared core aggregates logs across
@@ -265,12 +287,14 @@ RSI is adopted in stages; promotion to universal #1 is gated on the quantitative
 "#1 subskill in every skill" is taken to mean every NEW skill ships `00-rsi` by default
 and existing pipeline skills get it backfilled — the achievable form of "every."
 
-- **Stage 0 (this spec):** standard only. Stage 1 is approved but not measurable yet.
-- **Stage 1 (pilot):** add `00-rsi` to two skills (`ac-subskills-author`, public;
-  `ac-security-engineer`, not yet public) plus the `ac-rsi` core. Log passively, outcomes
-  recorded by the harness. NO proposals yet. **Gate = the §0 "trustworthy log" bar**
-  (≥100 leaf events/skill, ≥95 in 100 matched to one independent outcome record, zero
-  chain breaks) over ≥30 days.
+- **Stage 0 (this spec):** standard only. Stage 1 pilot **registered 2026-11-19, window open**
+  (docs/PILOT-2026-11.md).
+- **Stage 1 (pilot):** the pilot skills are named in the registered pilot card
+  (docs/PILOT-2026-11.md — evidence-based, substituted for the original pre-telemetry pair),
+  plus the `ac-rsi` core. Leaf records are produced by `scripts/skill-observer.py` over the
+  window; outcomes recorded by the harness. NO proposals yet. **Gate = the §0 "trustworthy log"
+  bar** (≥100 attributed leaf events/skill; ≥95 join-validity over attributed leaf events;
+  attribution coverage reported; zero chain breaks) over ≥30 days.
 - **Stage 2 (propose):** turn on the offline optimization pass. **Gate = the §0
   "replicated improvement" + "no safety regression" bars.** A proposal is admitted only if it
   also survives ≥3 re-runs with a reported confidence interval, is measured against a frozen

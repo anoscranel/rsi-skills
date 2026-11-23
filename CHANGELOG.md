@@ -1,6 +1,7 @@
 # Changelog
 
-[unreleased]: https://github.com/anoscranel/rsi-skills/compare/v0.9.4...HEAD
+[unreleased]: https://github.com/anoscranel/rsi-skills/compare/v0.10.0...HEAD
+[0.9.4…0.10.0]: https://github.com/anoscranel/rsi-skills/compare/v0.9.4...v0.10.0
 [0.9.3…0.9.4]: https://github.com/anoscranel/rsi-skills/compare/v0.9.3...v0.9.4
 [0.9.2…0.9.3]: https://github.com/anoscranel/rsi-skills/compare/v0.9.2...v0.9.3
 [0.9.1…0.9.2]: https://github.com/anoscranel/rsi-skills/compare/v0.9.1...v0.9.2
@@ -14,6 +15,22 @@
 [0.3.0…0.4.0]: https://github.com/anoscranel/rsi-skills/compare/v0.3.0...v0.4.0
 [0.2.0…0.3.0]: https://github.com/anoscranel/rsi-skills/compare/v0.2.0...v0.3.0
 [0.1.0…0.2.0]: https://github.com/anoscranel/rsi-skills/compare/v0.1.0...v0.2.0
+
+## 0.10.0 — 2026-11-23
+
+Three owner decisions, made under explicit delegation and recorded with reasoning and reversal triggers (`DECISIONS.md` on the ops board). The pilot window is now registered and open; the Stage-1 join-validity bar is re-scoped to what attribution can honestly support; the miss-rate protocol gains its scoring half.
+
+### Added
+- `scripts/miss-rate.py` — scores the miss-rate protocol (steps 3–4): classifies each labeled task as hit / miss / false-fire / unrun against cold-run results, reports each as a fraction of N, and pins the label set by sha256 so any relabel is detectable. Exit 0/2/3 semantics; `--self-test`. Stdlib-only, Python 3.8.
+- `tests/test_miss_rate.py` — 12 contract tests (classification, unrun-counted-not-dropped, duplicate-task_id rejection, relabel-detectability, missing-input handling).
+- `docs/miss-rate-seed.jsonl` — 16 **desk-proposed** expected-skill labels drawn from real session prompts (6 high / 10 medium confidence). Every label is `label_status: desk-proposed`, pending owner confirmation — none is certified ground truth. All `expected_skill` values are real installed skills.
+
+### Changed
+- SPEC §0: the ≥95 join bar's denominator moves from *all* leaf events to **attributed** leaf events (non-null `callID`); the rate is renamed **join-validity**. Rationale: attribution is an inference, so a reasoning-only leaf that issues no tool call cannot produce an outcome to join — counting it as a join failure penalized the instrument, not the skill. **Attribution coverage** (attributed / total activations) is now reported as a non-gating diagnostic so the residual stays visible. The ≥100-attributed count stays as an **absolute-count** backstop (it defeats a writer that nulls everything, not one that nulls selectively); to narrow that gap the pilot card now **states an expected attribution coverage per skill** (added 2026-11-20 by correction, after the window opened; skill-1 anchored to pre-window calibration, skill-2 unanchored), and a shortfall >10pp at window close is a STOP-and-report condition. The vacuous-join clause, `tool ∉ {skill, unknown}`, and zero-chain-breaks are unchanged.
+- `docs/PILOT-2026-11.md` — template → **registered**, window **open**: 2026-11-19T20:19:12Z → 2026-12-19T20:19:12Z; pilot skills `ac-single-request-value` (clears ≥100 joinable) + `ac-deep-research-op-pipeline`; improvement margin **+5pp fired-leaf outcome rate, replicated on both skills** (Stage-2 target only), fixed at registration — the window opens at fixation, **2026-11-19T20:19:12Z**, not at midnight of that day. Recorder identity + first chain hash recorded against that start; 2026-11-12→19 data designated the pre-pilot calibration baseline.
+
+### Suite
+- 39 → **51** contract tests.
 
 ## 0.9.4 — 2026-11-19
 

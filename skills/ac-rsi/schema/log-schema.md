@@ -109,8 +109,10 @@ distinct ids were shared, so this is not hypothetical.
 
 ⚠️ **This rule is an inference, not a measurement.** "The first tool call after activation" is
 a defensible attribution, not proof that the leaf caused that call. A leaf that reasons without
-calling any tool produces `callID: null` (step 3) and therefore counts as a **miss** under
-`SPEC §0` — which is the correct conservative treatment, not a bug.
+calling any tool produces `callID: null` (step 3). Such an event is **excluded from the
+join-validity denominator** and surfaced in the attribution-coverage diagnostic (`SPEC §0`,
+amended 2026-11-19); it still never counts toward the ≥100. A reasoning-only leaf legitimately
+issues no tool call — that is a skill property, not an instrument failure.
 
 ⚠️ Consequence: observer-written leaf records systematically under-count successful leaves,
 because reasoning-only leaves are indistinguishable from leaves that did nothing. State the
